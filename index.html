@@ -1,78 +1,435 @@
-#!/usr/bin/env python3
-"""
-Assembly Subtitles — Local Server Launcher
-==========================================
-Run this script to serve the subtitles app over http://localhost
-so Chrome allows microphone access.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Permissions-Policy" content="microphone=*">
+<title>Assembly Live Subtitles</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #080810; color: #fff;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+  }
 
-Usage:
-  1. Put this file in the SAME folder as assembly-subtitles.html
-  2. Double-click it, OR run:  python launch.py
-  3. Chrome opens automatically at http://localhost:8765
-  4. Click Allow when Chrome asks for microphone access
-"""
+  #topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 22px;
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    flex-shrink: 0;
+  }
+  #logo { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: rgba(255,255,255,0.25); text-transform: uppercase; }
 
-import http.server
-import socketserver
-import webbrowser
-import threading
-import os
-import sys
+  #lang-toggle { display: flex; gap: 6px; align-items: center; }
+  .ltab {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+    padding: 3px 10px; border-radius: 20px; border: 1.5px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.3); cursor: pointer; transition: all 0.2s; background: none;
+  }
+  .ltab.active-en { border-color: #60a5fa; color: #93c5fd; background: rgba(96,165,250,0.12); }
+  .ltab.active-da { border-color: #f87171; color: #fca5a5; background: rgba(248,113,113,0.12); }
+  #ltab-auto { font-size: 10px; padding: 3px 8px; }
+  #ltab-auto.active-auto { border-color: #a78bfa; color: #c4b5fd; background: rgba(167,139,250,0.12); }
 
-PORT = 8765
-HTML_FILE = "assembly-subtitles.html"
+  #dot-wrap { display: flex; align-items: center; gap: 7px; }
+  #mic-dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: #374151; transition: background 0.3s; flex-shrink: 0;
+  }
+  #mic-dot.on   { background: #10b981; animation: pulse 2s infinite; }
+  #mic-dot.busy { background: #f59e0b; }
+  #mic-dot.off  { background: #6b7280; }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.5); }
+    50%     { box-shadow: 0 0 0 8px rgba(16,185,129,0); }
+  }
+  #mic-label { font-size: 11px; color: rgba(255,255,255,0.28); }
 
-# Make sure we serve from the folder this script lives in
-script_dir = os.path.dirname(os.path.abspath(__file__))
-os.chdir(script_dir)
+  #stage {
+    flex: 1; display: grid; grid-template-columns: 1fr 1px 1fr;
+    overflow: hidden; min-height: 0;
+  }
+  .divider { background: rgba(255,255,255,0.07); }
+  .col { display: flex; flex-direction: column; overflow: hidden; position: relative; }
+  .col::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 80px;
+    background: linear-gradient(to bottom, #080810, transparent);
+    pointer-events: none; z-index: 5;
+  }
+  .col-header {
+    padding: 13px 26px 9px; font-size: 11px; font-weight: 700;
+    letter-spacing: 0.12em; text-transform: uppercase; flex-shrink: 0; z-index: 2;
+  }
+  #col-en .col-header { color: #60a5fa; border-bottom: 1px solid rgba(96,165,250,0.12); }
+  #col-da .col-header { color: #f87171; border-bottom: 1px solid rgba(248,113,113,0.12); }
 
-if not os.path.exists(HTML_FILE):
-    print(f"ERROR: {HTML_FILE} not found in {script_dir}")
-    print("Make sure launch.py and assembly-subtitles.html are in the same folder.")
-    input("Press Enter to exit...")
-    sys.exit(1)
+  .subtitle-area {
+    flex: 1; display: flex; flex-direction: column;
+    justify-content: flex-end; padding: 12px 28px 22px;
+    overflow: hidden; min-height: 0; gap: 6px;
+  }
 
-class Handler(http.server.SimpleHTTPRequestHandler):
-    def log_message(self, format, *args):
-        pass  # suppress request logs for cleanliness
+  .sent-line {
+    font-size: clamp(12px, 1.4vw, 18px);
+    line-height: 1.5; text-align: center; word-break: break-word;
+  }
+  .sent-line.age1 { color: rgba(255,255,255,0.22); }
+  .sent-line.age2 { color: rgba(255,255,255,0.10); }
+  .sent-line.age3 { color: rgba(255,255,255,0.04); }
 
-    def end_headers(self):
-        # Required headers for microphone access on localhost
-        self.send_header("Cross-Origin-Opener-Policy", "same-origin")
-        self.send_header("Cross-Origin-Embedder-Policy", "require-corp")
-        super().end_headers()
+  .live-text {
+    font-size: clamp(26px, 3.6vw, 54px);
+    font-weight: 700; line-height: 1.25; text-align: center;
+    margin-top: 8px; min-height: 1.3em; word-break: break-word;
+  }
+  .interim-text {
+    font-size: clamp(14px, 1.7vw, 23px); text-align: center;
+    margin-top: 5px; min-height: 1.4em; font-style: italic;
+    word-break: break-word; opacity: 0.45;
+  }
+  #interim-en { color: #93c5fd; }
+  #interim-da { color: #fca5a5; }
 
-url = f"http://localhost:{PORT}/{HTML_FILE}"
+  @keyframes shimmer { 0%,100%{opacity:0.25} 50%{opacity:0.6} }
+  .shimmer {
+    animation: shimmer 1s infinite; color: rgba(255,255,255,0.4) !important;
+    font-style: italic; font-weight: 400 !important;
+    font-size: clamp(14px, 1.8vw, 24px) !important;
+  }
 
-print("=" * 50)
-print("  Assembly Live Subtitles")
-print("=" * 50)
-print(f"  Serving at: {url}")
-print(f"  Folder:     {script_dir}")
-print()
-print("  Opening Chrome automatically...")
-print("  Click ALLOW when Chrome asks for mic.")
-print()
-print("  Press Ctrl+C to stop the server.")
-print("=" * 50)
+  #controls {
+    padding: 13px 22px; display: flex; align-items: center;
+    justify-content: center; gap: 10px;
+    background: rgba(255,255,255,0.02);
+    border-top: 1px solid rgba(255,255,255,0.06); flex-shrink: 0;
+  }
+  button {
+    border: none; border-radius: 8px; cursor: pointer;
+    font-size: 13px; font-weight: 600; padding: 9px 20px; transition: all 0.15s;
+  }
+  button:active { transform: scale(0.96); }
+  #btn-start { background: #10b981; color: #fff; min-width: 110px; }
+  #btn-start:hover:not(:disabled) { background: #059669; }
+  #btn-start:disabled { background: #1e293b; color: #4b5563; cursor: not-allowed; }
+  #btn-stop  { background: #ef4444; color: #fff; }
+  #btn-stop:hover:not(:disabled)  { background: #dc2626; }
+  #btn-stop:disabled { background: #1e293b; color: #4b5563; cursor: not-allowed; }
+  #btn-clear { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.45); }
+  #btn-clear:hover { background: rgba(255,255,255,0.11); }
+  #info { font-size: 11px; color: rgba(255,255,255,0.2); min-width: 160px; text-align: center; }
 
-# Open browser after short delay so server is ready
-def open_browser():
-    import time; time.sleep(0.8)
-    webbrowser.open(url)
+  #fs-btn {
+    position: fixed; bottom: 56px; right: 14px; font-size: 11px;
+    color: rgba(255,255,255,0.13); cursor: pointer; background: none; border: none; padding: 3px;
+  }
+  #fs-btn:hover { color: rgba(255,255,255,0.35); }
 
-threading.Thread(target=open_browser, daemon=True).start()
+  #toast {
+    position: fixed; top: 54px; left: 50%;
+    transform: translateX(-50%) translateY(-8px);
+    background: #1e293b; border: 1px solid rgba(255,255,255,0.1);
+    color: #e2e8f0; padding: 9px 18px; border-radius: 8px;
+    font-size: 12px; opacity: 0; transition: all 0.3s;
+    pointer-events: none; z-index: 300; max-width: 560px; text-align: center;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
 
-try:
-    with socketserver.TCPServer(("", PORT), Handler) as httpd:
-        httpd.serve_forever()
-except KeyboardInterrupt:
-    print("\nServer stopped.")
-except OSError as e:
-    if "Address already in use" in str(e):
-        print(f"\nPort {PORT} is already in use.")
-        print(f"Try opening this URL manually: {url}")
-        print("Or close whatever is using that port and run again.")
-    else:
-        raise
-    input("Press Enter to exit...")
+<div id="topbar">
+  <div id="logo">🏫 Assembly Live Subtitles</div>
+  <div id="lang-toggle">
+    <button class="ltab" id="ltab-auto" onclick="setMode('auto')">AUTO</button>
+    <button class="ltab" id="ltab-en"   onclick="setMode('en')">EN→DA</button>
+    <button class="ltab" id="ltab-da"   onclick="setMode('da')">DA→EN</button>
+  </div>
+  <div id="dot-wrap">
+    <div id="mic-dot"></div>
+    <span id="mic-label">Idle</span>
+  </div>
+</div>
+
+<div id="stage">
+  <div class="col" id="col-en">
+    <div class="col-header">🇬🇧 English</div>
+    <div class="subtitle-area">
+      <div id="hist-en"></div>
+      <div class="live-text"    id="live-en"></div>
+      <div class="interim-text" id="interim-en"></div>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="col" id="col-da">
+    <div class="col-header">🇩🇰 Dansk</div>
+    <div class="subtitle-area">
+      <div id="hist-da"></div>
+      <div class="live-text"    id="live-da"></div>
+      <div class="interim-text" id="interim-da"></div>
+    </div>
+  </div>
+</div>
+
+<div id="controls">
+  <button id="btn-start">▶ Start</button>
+  <button id="btn-stop" disabled>⏹ Stop</button>
+  <button id="btn-clear">✕ Clear</button>
+  <div id="info">Spacebar to toggle</div>
+</div>
+
+<button id="fs-btn" onclick="toggleFS()">⛶ Fullscreen</button>
+<div id="toast"></div>
+
+<script>
+const MAX_HIST = 4;
+let mode = 'auto';
+
+const DA_WORDS = new Set([
+  'og','er','en','et','at','på','ikke','med','for','til','af','om','den','som',
+  'der','men','de','vil','kan','vi','du','har','han','hun','sig','var','jeg',
+  'fra','hvad','hvor','når','så','også','eller','her','nu','da','jo','hej',
+  'tak','ja','nej','god','godt','dag','meget','alle','nogle','mange','hver',
+  'mere','samme','første','nye','store','lille','siger','sagde','bare','lidt',
+  'rigtig','faktisk','blive','disse','dette','siden','altså','nemlig','fordi',
+  'selvom','alligevel','egentlig','skolen','klasse','elever','lærere','hvem',
+  'dem','jer','os','mit','din','sin','vores','deres','ham','hende',
+  'hvilken','hvilke','mens','inden','efter','under','over','ned','op','ud',
+  'ind','frem','tilbage','hjem','selvfølgelig','naturligvis','desværre'
+]);
+
+function detectLang(text) {
+  if (mode === 'en') return 'en';
+  if (mode === 'da') return 'da';
+  const clean = text.toLowerCase().replace(/[^a-zæøå\s]/g, '');
+  if (/[æøå]/.test(clean)) return 'da';
+  const words = clean.split(/\s+/).filter(Boolean);
+  if (!words.length) return 'en';
+  const hits = words.filter(w => DA_WORDS.has(w)).length;
+  if (hits >= 2) return 'da';
+  if (hits >= 1 && words.length <= 6) return 'da';
+  return 'en';
+}
+
+async function translate(text, from, to) {
+  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${from}|${to}`;
+  const req = () => fetch(url).then(r => r.json()).then(d => {
+    if (d.responseStatus === 200) return d.responseData.translatedText;
+    throw new Error(d.responseDetails);
+  });
+  const [a, b] = await Promise.allSettled([req(), req()]);
+  if (a.status === 'fulfilled') return a.value;
+  if (b.status === 'fulfilled') return b.value;
+  throw new Error('Translation failed');
+}
+
+const $ = id => document.getElementById(id);
+const liveEN = $('live-en'), liveDA = $('live-da');
+const intEN  = $('interim-en'), intDA = $('interim-da');
+const histEN = $('hist-en'),   histDA = $('hist-da');
+const micDot = $('mic-dot'),   micLbl = $('mic-label'), infoEl = $('info');
+let histArrEN = [], histArrDA = [];
+
+function setMic(cls, label) {
+  micDot.className   = cls;
+  micLbl.textContent = label;
+  infoEl.textContent = label;
+}
+
+function toast(msg, ms = 5000) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), ms);
+}
+
+function pushHist(lang, text) {
+  const arr = lang === 'en' ? histArrEN : histArrDA;
+  const box = lang === 'en' ? histEN    : histDA;
+  arr.push(text);
+  while (arr.length > MAX_HIST) arr.shift();
+  box.innerHTML = arr.map((t, i) => {
+    const age = arr.length - i;
+    return `<div class="sent-line age${age}">${t}</div>`;
+  }).join('');
+}
+
+function setMode(m) {
+  mode = m;
+  $('ltab-auto').className = 'ltab' + (m === 'auto' ? ' active-auto' : '');
+  $('ltab-en').className   = 'ltab' + (m === 'en'   ? ' active-en'   : '');
+  $('ltab-da').className   = 'ltab' + (m === 'da'   ? ' active-da'   : '');
+  if (isRunning && rec) swapRecLang();
+}
+setMode('auto');
+
+// Translation queue
+let xlating = false;
+const xQueue = [];
+
+function enqueue(text, lang) {
+  if (xQueue.length && xQueue[xQueue.length-1].text === text) return;
+  xQueue.push({ text, lang });
+  if (!xlating) drainQueue();
+}
+
+async function drainQueue() {
+  if (!xQueue.length) { xlating = false; if (isRunning) setMic('on', 'Listening…'); return; }
+  xlating = true;
+
+  const { text, lang } = xQueue.shift();
+  const isEN   = lang === 'en';
+  const from   = isEN ? 'en' : 'da';
+  const to     = isEN ? 'da' : 'en';
+  const destEl = isEN ? liveDA : liveEN;
+
+  if (isEN) { pushHist('en', text); liveEN.textContent = ''; }
+  else      { pushHist('da', text); liveDA.textContent = ''; }
+
+  destEl.textContent = 'translating…';
+  destEl.classList.add('shimmer');
+  setMic('busy', 'Translating…');
+
+  try {
+    const result = await translate(text, from, to);
+    destEl.classList.remove('shimmer');
+    destEl.textContent = '';
+    if (isEN) pushHist('da', result);
+    else      pushHist('en', result);
+  } catch(e) {
+    destEl.classList.remove('shimmer');
+    destEl.textContent = '';
+    toast('Translation failed — check internet connection.');
+  }
+
+  drainQueue();
+}
+
+// ── Single recognizer ─────────────────────────────────────
+let rec = null, isRunning = false;
+let lastFinal = '', lastFinalAt = 0;
+let currentRecLang = '';
+
+function recLangForMode() {
+  return mode === 'en' ? 'en-US' : 'da-DK';
+}
+
+function onRecEnd() {
+  // continuous=true should never fire onend during normal use.
+  // If Chrome kills it (tab hidden, OS interrupt), restart same object.
+  if (isRunning && rec) {
+    setTimeout(() => { try { rec.start(); } catch(e) {} }, 250);
+  }
+}
+
+function swapRecLang() {
+  const newLang = recLangForMode();
+  if (newLang === currentRecLang || !rec) return;
+  currentRecLang = newLang;
+  rec.onend = null;
+  try { rec.abort(); } catch(e) {}
+  rec.lang  = newLang;
+  rec.onend = onRecEnd;
+  setTimeout(() => { try { rec.start(); } catch(e) {} }, 150);
+}
+
+function startRec() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { toast('❌ Speech recognition requires Chrome or Edge.'); return false; }
+
+  currentRecLang = recLangForMode();
+  rec = new SR();
+  rec.lang            = currentRecLang;
+  rec.continuous      = true;
+  rec.interimResults  = true;
+  rec.maxAlternatives = 1;
+
+  rec.onstart = () => setMic('on', 'Listening…');
+
+  rec.onresult = (e) => {
+    let interim = '', finals = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript;
+      if (e.results[i].isFinal) finals  += t + ' ';
+      else                      interim += t;
+    }
+
+    const sample = interim || finals.trim();
+    const lang   = detectLang(sample);
+    if (lang === 'da') { intDA.textContent = interim; intEN.textContent = ''; }
+    else               { intEN.textContent = interim; intDA.textContent = ''; }
+
+    if (finals.trim()) {
+      const text = finals.trim();
+      intEN.textContent = ''; intDA.textContent = '';
+      const now = Date.now();
+      if (text === lastFinal && now - lastFinalAt < 800) return;
+      lastFinal = text; lastFinalAt = now;
+      enqueue(text, detectLang(text));
+    }
+  };
+
+  rec.onerror = (e) => {
+    if (['no-speech', 'aborted'].includes(e.error)) return;
+    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+      toast('🎤 Mic access denied. Click the 🔒 in the address bar → allow microphone.', 9000);
+      stopAll(); return;
+    }
+  };
+
+  rec.onend = onRecEnd;
+
+  try { rec.start(); return true; }
+  catch(e) { toast('Could not start mic: ' + e.message, 7000); return false; }
+}
+
+function startAll() {
+  isRunning = true;
+  $('btn-start').disabled = true;
+  $('btn-stop').disabled  = false;
+  if (!startRec()) { isRunning = false; $('btn-start').disabled = false; }
+}
+
+function stopAll() {
+  isRunning = false;
+  if (rec) { rec.onend = null; try { rec.abort(); } catch(e) {} rec = null; }
+  xQueue.length = 0; xlating = false;
+  $('btn-start').disabled = false; $('btn-stop').disabled = true;
+  intEN.textContent = ''; intDA.textContent = '';
+  liveEN.classList.remove('shimmer'); liveDA.classList.remove('shimmer');
+  setMic('off', 'Stopped');
+}
+
+$('btn-start').addEventListener('click', startAll);
+$('btn-stop').addEventListener ('click', stopAll);
+$('btn-clear').addEventListener('click', () => {
+  histArrEN = []; histArrDA = [];
+  histEN.innerHTML = ''; histDA.innerHTML = '';
+  liveEN.textContent = ''; liveDA.textContent = '';
+  liveEN.classList.remove('shimmer'); liveDA.classList.remove('shimmer');
+  intEN.textContent = ''; intDA.textContent = '';
+  lastFinal = '';
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === ' ' && e.target === document.body) { e.preventDefault(); isRunning ? stopAll() : startAll(); }
+  if (e.key === 'Escape') stopAll();
+  if (e.key === 'F11') { e.preventDefault(); toggleFS(); }
+});
+
+function toggleFS() {
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
+  else document.exitFullscreen();
+}
+
+window.onload = () => {
+  const ok = ('webkitSpeechRecognition' in window) || ('SpeechRecognition' in window);
+  if (!ok) {
+    toast('⚠️ Please open in Chrome or Edge — other browsers don\'t support speech recognition.', 9000);
+    $('btn-start').disabled = true; setMic('off', 'Unsupported browser');
+  } else {
+    toast('Ready! Press ▶ Start — Chrome will ask for mic access on first use.', 5000);
+  }
+};
+</script>
+</body>
+</html>

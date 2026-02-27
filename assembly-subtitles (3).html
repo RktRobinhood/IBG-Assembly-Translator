@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Assembly Live Subtitles</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #080810;
+    color: #fff;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  #topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 22px;
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    flex-shrink: 0;
+  }
+  #logo { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: rgba(255,255,255,0.25); text-transform: uppercase; }
+
+  #dot-wrap { display: flex; align-items: center; gap: 7px; }
+  #mic-dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: #374151; transition: background 0.3s;
+    flex-shrink: 0;
+  }
+  #mic-dot.on   { background: #10b981; animation: pulse 2s infinite; }
+  #mic-dot.busy { background: #f59e0b; }
+  #mic-dot.off  { background: #ef4444; }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.5); }
+    50%     { box-shadow: 0 0 0 7px rgba(16,185,129,0); }
+  }
+  #mic-label { font-size: 11px; color: rgba(255,255,255,0.28); }
+
+  /* ── DUAL COLUMNS ── */
+  #stage {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  .divider { background: rgba(255,255,255,0.07); }
+
+  .col {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .col::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 80px;
+    background: linear-gradient(to bottom, #080810, transparent);
+    pointer-events: none; z-index: 5;
+  }
+
+  .col-header {
+    padding: 14px 28px 10px;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    flex-shrink: 0; z-index: 2;
+  }
+  #col-en .col-header { color: #60a5fa; border-bottom: 1px solid rgba(96,165,250,0.12); }
+  #col-da .col-header { color: #f87171; border-bottom: 1px solid rgba(248,113,113,0.12); }
+
+  .subtitle-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 16px 32px 24px;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  .history-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow: hidden;
+  }
+
+  .hist-line {
+    font-size: clamp(13px, 1.6vw, 20px);
+    line-height: 1.5;
+    text-align: center;
+    color: rgba(255,255,255,0.15);
+    transition: opacity 0.6s;
+    white-space: normal;
+    word-break: break-word;
+  }
+  .hist-line.dim { color: rgba(255,255,255,0.06); }
+
+  /* big live text */
+  .live-text {
+    font-size: clamp(30px, 4vw, 58px);
+    font-weight: 700;
+    line-height: 1.25;
+    text-align: center;
+    margin-top: 10px;
+    min-height: 1.3em;
+    word-break: break-word;
+    transition: opacity 0.2s;
+  }
+
+  /* interim typing indicator */
+  .interim-text {
+    font-size: clamp(15px, 1.9vw, 26px);
+    text-align: center;
+    margin-top: 6px;
+    min-height: 1.4em;
+    font-style: italic;
+    word-break: break-word;
+  }
+  #interim-en { color: rgba(96,165,250,0.4); }
+  #interim-da { color: rgba(248,113,113,0.4); }
+
+  /* translation pending shimmer */
+  .shimmer {
+    background: linear-gradient(90deg,
+      rgba(255,255,255,0.05) 25%,
+      rgba(255,255,255,0.12) 50%,
+      rgba(255,255,255,0.05) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.2s infinite;
+    border-radius: 8px;
+    color: transparent !important;
+    user-select: none;
+  }
+  @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+  /* ── CONTROLS ── */
+  #controls {
+    padding: 14px 22px;
+    display: flex; align-items: center;
+    justify-content: center; gap: 10px;
+    background: rgba(255,255,255,0.02);
+    border-top: 1px solid rgba(255,255,255,0.06);
+    flex-shrink: 0;
+  }
+
+  button {
+    border: none; border-radius: 8px; cursor: pointer;
+    font-size: 13px; font-weight: 600;
+    padding: 9px 22px; transition: all 0.15s;
+  }
+  button:active { transform: scale(0.96); }
+  #btn-start { background: #10b981; color: #fff; min-width: 120px; }
+  #btn-start:hover:not(:disabled) { background: #059669; }
+  #btn-start:disabled { background: #1e293b; color: #4b5563; cursor: not-allowed; }
+  #btn-stop  { background: #ef4444; color: #fff; }
+  #btn-stop:hover:not(:disabled)  { background: #dc2626; }
+  #btn-stop:disabled { background: #1e293b; color: #4b5563; cursor: not-allowed; }
+  #btn-clear { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.45); }
+  #btn-clear:hover { background: rgba(255,255,255,0.11); }
+
+  #info { font-size: 11px; color: rgba(255,255,255,0.22); min-width: 200px; text-align: center; }
+
+  #fs-btn {
+    position: fixed; bottom: 58px; right: 14px;
+    font-size: 11px; color: rgba(255,255,255,0.13);
+    cursor: pointer; background: none; border: none; padding: 3px;
+  }
+  #fs-btn:hover { color: rgba(255,255,255,0.35); }
+
+  #toast {
+    position: fixed; top: 56px; left: 50%;
+    transform: translateX(-50%) translateY(-8px);
+    background: #1e293b; border: 1px solid rgba(255,255,255,0.1);
+    color: #e2e8f0; padding: 9px 18px; border-radius: 8px;
+    font-size: 12px; opacity: 0; transition: all 0.3s;
+    pointer-events: none; z-index: 300;
+    max-width: 540px; text-align: center;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <div id="logo">🏫 Assembly Live Subtitles</div>
+  <div id="dot-wrap">
+    <div id="mic-dot"></div>
+    <span id="mic-label">Idle</span>
+  </div>
+</div>
+
+<div id="stage">
+
+  <div class="col" id="col-en">
+    <div class="col-header">🇬🇧 English</div>
+    <div class="subtitle-area">
+      <div class="history-wrap" id="hist-en"></div>
+      <div class="live-text"   id="live-en"></div>
+      <div class="interim-text" id="interim-en"></div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="col" id="col-da">
+    <div class="col-header">🇩🇰 Dansk</div>
+    <div class="subtitle-area">
+      <div class="history-wrap" id="hist-da"></div>
+      <div class="live-text"   id="live-da"></div>
+      <div class="interim-text" id="interim-da"></div>
+    </div>
+  </div>
+
+</div>
+
+<div id="controls">
+  <button id="btn-start">▶ Start</button>
+  <button id="btn-stop" disabled>⏹ Stop</button>
+  <button id="btn-clear">✕ Clear</button>
+  <div id="info">Press Start or Spacebar</div>
+</div>
+
+<button id="fs-btn" onclick="toggleFS()">⛶ Fullscreen</button>
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  DESIGN PRINCIPLES
+//  1. ONE recognizer, set to en-US, NEVER restarted → zero mic popups
+//  2. Language detected from the TEXT (not the recognizer lang)
+//     using a fast heuristic wordlist — no API call needed
+//  3. Translation via Anthropic API (fast) with MyMemory fallback
+//  4. Interim results update BOTH columns in real time as you speak
+//  5. Finals trigger an async translation that fills the other column
+// ═══════════════════════════════════════════════════════════
+
+const MAX_HIST = 3;
+
+// Danish common words for detection (fast heuristic)
+const DA_WORDS = new Set([
+  'og','i','er','det','en','at','på','ikke','med','for','til','af','om',
+  'den','som','der','men','de','et','vil','kan','vi','du','har','han',
+  'hun','sig','var','jeg','fra','hvad','hvor','når','så','også','eller',
+  'over','under','efter','ud','ind','op','ned','her','der','nu','da',
+  'jo','selv','disse','dette','blive','bliver','meget','alle','nogle',
+  'mange','hver','mere','samme','anden','første','nye','store','lille',
+  'hej','tak','ja','nej','god','godt','dag','tid','folk','år','gang',
+  'siger','sagde','går','går','kom','bare','lidt','rigtig','faktisk'
+]);
+
+function detectLang(text) {
+  if (!text || text.trim().length < 2) return null;
+  const words  = text.toLowerCase().replace(/[^a-zæøå\s]/g,'').split(/\s+/).filter(Boolean);
+  if (!words.length) return null;
+  const daHits = words.filter(w => DA_WORDS.has(w)).length;
+  const ratio  = daHits / words.length;
+  // Need at least 1 DA word OR strong ratio for short phrases
+  if (daHits >= 2 || (daHits >= 1 && ratio >= 0.25)) return 'da';
+  return 'en';
+}
+
+// ── Translation ───────────────────────────────────────────
+// Primary: Anthropic API (fast, intelligent)
+// Fallback: MyMemory (free, slower)
+
+async function translateViaAnthropic(text, from, to) {
+  const toLang = to === 'da' ? 'Danish' : 'English';
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 256,
+      messages: [{
+        role: 'user',
+        content: `Translate this to ${toLang}. Reply with ONLY the translation, nothing else:\n\n${text}`
+      }]
+    })
+  });
+  if (!res.ok) throw new Error('Anthropic API error');
+  const data = await res.json();
+  return data.content?.[0]?.text?.trim() || '';
+}
+
+async function translateViaMyMemory(text, from, to) {
+  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${from}|${to}`;
+  const res  = await fetch(url);
+  const data = await res.json();
+  if (data.responseStatus === 200) return data.responseData.translatedText;
+  throw new Error(data.responseDetails);
+}
+
+async function translate(text, from, to) {
+  try {
+    return await translateViaAnthropic(text, from, to);
+  } catch(e) {
+    return await translateViaMyMemory(text, from, to);
+  }
+}
+
+// ── DOM ───────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const liveEN    = $('live-en');
+const liveDA    = $('live-da');
+const iEN       = $('interim-en');
+const iDA       = $('interim-da');
+const histBoxEN = $('hist-en');
+const histBoxDA = $('hist-da');
+const micDot    = $('mic-dot');
+const micLabel  = $('mic-label');
+const infoEl    = $('info');
+
+let histEN = [], histDA = [];
+
+function setMic(state, label) {
+  micDot.className   = state;
+  micLabel.textContent = label;
+  infoEl.textContent   = label;
+}
+
+function toast(msg, ms = 5000) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), ms);
+}
+
+function pushHist(lang, text) {
+  const arr = lang === 'en' ? histEN : histDA;
+  const box = lang === 'en' ? histBoxEN : histBoxDA;
+  arr.push(text);
+  while (arr.length > MAX_HIST) arr.shift();
+  box.innerHTML = arr.map((t, i) => {
+    const dim = arr.length - i >= 3 ? ' dim' : '';
+    return `<div class="hist-line${dim}">${t}</div>`;
+  }).join('');
+}
+
+// ── Recognizer — ONE instance, never restarted ────────────
+let recognizer = null;
+let isRunning  = false;
+
+// Track last interim text per language slot to update live column
+let lastInterimEN = '';
+let lastInterimDA = '';
+
+// Debounce duplicate finals
+let lastFinalText = '';
+let lastFinalTime = 0;
+
+function buildRecognizer() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return null;
+
+  const r = new SR();
+  // Use en-US — Chrome's en-US recognizer handles both EN and DA text
+  // passably because it transcribes phonetically. We then detect from text.
+  // For better DA transcription we actually use da-DK but never restart it.
+  r.lang           = 'da-DK';  // da-DK recognizer also captures english well enough
+  r.continuous     = true;     // ← NEVER stops, NEVER re-prompts for mic
+  r.interimResults = true;
+  r.maxAlternatives= 1;
+  return r;
+}
+
+function attachHandlers(r) {
+  r.onstart = () => setMic('on', 'Listening…');
+
+  r.onresult = (e) => {
+    let interimText = '';
+    let finalText   = '';
+
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript;
+      if (e.results[i].isFinal) finalText   += t + ' ';
+      else                      interimText += t;
+    }
+
+    const allInterim = interimText || finalText.trim();
+    const detLang    = detectLang(allInterim);
+
+    // Update interim display in real time
+    if (detLang === 'da' || (!detLang && lastInterimDA)) {
+      iDA.textContent = interimText;
+      iEN.textContent = '';
+    } else {
+      iEN.textContent = interimText;
+      iDA.textContent = '';
+    }
+
+    if (finalText.trim()) {
+      const ft = finalText.trim();
+      // Debounce: ignore if same text within 800ms
+      const now = Date.now();
+      if (ft === lastFinalText && now - lastFinalTime < 800) return;
+      lastFinalText = ft;
+      lastFinalTime = now;
+
+      iEN.textContent = '';
+      iDA.textContent = '';
+
+      const lang = detectLang(ft) || 'en';
+      handleFinal(ft, lang);
+    }
+  };
+
+  r.onerror = (e) => {
+    if (e.error === 'no-speech') return; // fine, just silence
+    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+      toast('🎤 Mic blocked — click 🔒 in Chrome\'s address bar, allow mic, then refresh.', 9000);
+      stopAll(); return;
+    }
+    if (e.error === 'aborted') return;
+    setMic('busy', 'Recovering…');
+  };
+
+  r.onend = () => {
+    // continuous=true: onend fires only if Chrome forcibly ended us
+    // (e.g. tab backgrounded, system interruption). Restart once.
+    if (isRunning) {
+      setTimeout(() => {
+        if (isRunning && recognizer) {
+          try { recognizer.start(); } catch(e) {}
+        }
+      }, 400);
+    }
+  };
+}
+
+async function handleFinal(text, spokenLang) {
+  setMic('busy', 'Translating…');
+
+  const isEN = spokenLang === 'en';
+  const from = isEN ? 'en' : 'da';
+  const to   = isEN ? 'da' : 'en';
+
+  // Put spoken text into its column
+  if (isEN) { pushHist('en', text); liveEN.textContent = ''; }
+  else      { pushHist('da', text); liveDA.textContent = ''; }
+
+  // Show shimmer in translation column while we wait
+  const targetEl = isEN ? liveDA : liveEN;
+  targetEl.textContent = '  translating…  ';
+  targetEl.classList.add('shimmer');
+
+  try {
+    const translated = await translate(text, from, to);
+    targetEl.classList.remove('shimmer');
+    targetEl.textContent = '';
+    if (isEN) pushHist('da', translated);
+    else      pushHist('en', translated);
+  } catch(e) {
+    targetEl.classList.remove('shimmer');
+    targetEl.textContent = '';
+    toast('Translation failed — check your connection.');
+  }
+
+  setMic('on', 'Listening…');
+}
+
+// ── Start / Stop ──────────────────────────────────────────
+function startAll() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { toast('❌ Requires Chrome or Edge.', 7000); return; }
+
+  isRunning  = true;
+  recognizer = buildRecognizer();
+  attachHandlers(recognizer);
+
+  $('btn-start').disabled = true;
+  $('btn-stop').disabled  = false;
+
+  try { recognizer.start(); }
+  catch(e) { toast('Could not access microphone: ' + e.message, 7000); }
+}
+
+function stopAll() {
+  isRunning = false;
+  if (recognizer) {
+    recognizer.onend = null; // prevent auto-restart
+    try { recognizer.stop(); } catch(e) {}
+    recognizer = null;
+  }
+  $('btn-start').disabled = false;
+  $('btn-stop').disabled  = true;
+  iEN.textContent = ''; iDA.textContent = '';
+  setMic('off', 'Stopped');
+}
+
+$('btn-start').addEventListener('click', startAll);
+$('btn-stop').addEventListener ('click', stopAll);
+$('btn-clear').addEventListener('click', () => {
+  histEN = []; histDA = [];
+  histBoxEN.innerHTML = ''; histBoxDA.innerHTML = '';
+  liveEN.textContent  = ''; liveDA.textContent  = '';
+  liveEN.classList.remove('shimmer'); liveDA.classList.remove('shimmer');
+  iEN.textContent = ''; iDA.textContent = '';
+  lastFinalText = '';
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === ' ' && e.target === document.body) { e.preventDefault(); isRunning ? stopAll() : startAll(); }
+  if (e.key === 'Escape') stopAll();
+  if (e.key === 'F11') { e.preventDefault(); toggleFS(); }
+});
+
+function toggleFS() {
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
+  else document.exitFullscreen();
+}
+
+window.onload = () => {
+  const ok = ('webkitSpeechRecognition' in window) || ('SpeechRecognition' in window);
+  if (!ok) {
+    toast('⚠️ Open in Chrome or Edge.', 9000);
+    $('btn-start').disabled = true;
+    setMic('off', 'Unsupported browser');
+  } else {
+    toast('Ready! Chrome will ask for mic access once — then it stays open permanently.', 5000);
+  }
+};
+</script>
+</body>
+</html>

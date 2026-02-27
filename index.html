@@ -19,7 +19,6 @@ body {
   border-bottom:1px solid rgba(255,255,255,0.07); flex-shrink:0;
 }
 #logo { font-size:12px; font-weight:700; letter-spacing:.08em; color:rgba(255,255,255,.22); text-transform:uppercase; }
-
 #lang-toggle { display:flex; gap:6px; align-items:center; }
 .ltab {
   font-size:11px; font-weight:700; letter-spacing:.07em;
@@ -29,12 +28,8 @@ body {
 .ltab.active-en { border-color:#60a5fa; color:#93c5fd; background:rgba(96,165,250,.12); }
 .ltab.active-da { border-color:#f87171; color:#fca5a5; background:rgba(248,113,113,.12); }
 #ltab-auto.active-auto { border-color:#a78bfa; color:#c4b5fd; background:rgba(167,139,250,.12); }
-
 #dot-wrap { display:flex; align-items:center; gap:7px; }
-#mic-dot {
-  width:9px; height:9px; border-radius:50%;
-  background:#374151; transition:background .3s;
-}
+#mic-dot { width:9px; height:9px; border-radius:50%; background:#374151; transition:background .3s; }
 #mic-dot.on   { background:#10b981; animation:pulse 2s infinite; }
 #mic-dot.busy { background:#f59e0b; }
 #mic-dot.off  { background:#6b7280; }
@@ -44,52 +39,114 @@ body {
 }
 #mic-label { font-size:11px; color:rgba(255,255,255,.28); }
 
-/* ── columns ── */
+/* ── two column stage ── */
 #stage {
   flex:1; display:grid; grid-template-columns:1fr 1px 1fr;
   overflow:hidden; min-height:0;
 }
 .divider { background:rgba(255,255,255,.07); }
-.col { display:flex; flex-direction:column; overflow:hidden; position:relative; }
-.col::before {
-  content:''; position:absolute; top:0; left:0; right:0; height:80px;
-  background:linear-gradient(to bottom,#080810,transparent);
+
+.col {
+  display:flex; flex-direction:column;
+  overflow:hidden; position:relative;
+}
+
+/* fade top */
+.col::after {
+  content:''; position:absolute; top:0; left:0; right:0; height:120px;
+  background:linear-gradient(to bottom,#080810 0%,rgba(8,8,16,0) 100%);
   pointer-events:none; z-index:5;
 }
+
 .col-header {
-  padding:13px 26px 9px; font-size:11px; font-weight:700;
-  letter-spacing:.12em; text-transform:uppercase; flex-shrink:0; z-index:2;
+  padding:12px 24px 8px; font-size:11px; font-weight:700;
+  letter-spacing:.12em; text-transform:uppercase; flex-shrink:0; z-index:6;
+  position:relative;
 }
 #col-en .col-header { color:#60a5fa; border-bottom:1px solid rgba(96,165,250,.12); }
 #col-da .col-header { color:#f87171; border-bottom:1px solid rgba(248,113,113,.12); }
-.subtitle-area {
-  flex:1; display:flex; flex-direction:column;
-  justify-content:flex-end; padding:12px 28px 22px;
-  overflow:hidden; min-height:0; gap:5px;
+
+/* The scroll container — newest at BOTTOM */
+.scroll-area {
+  flex:1; overflow:hidden; position:relative;
+  display:flex; flex-direction:column; justify-content:flex-end;
+  padding:0 28px 28px;
+  gap:0;
 }
-.sent-line { font-size:clamp(12px,1.4vw,18px); line-height:1.5; text-align:center; word-break:break-word; }
-.sent-line.age1 { color:rgba(255,255,255,.2); }
-.sent-line.age2 { color:rgba(255,255,255,.08); }
-.sent-line.age3 { color:rgba(255,255,255,.03); }
-.live-text {
-  font-size:clamp(24px,3.4vw,52px); font-weight:700; line-height:1.25;
-  text-align:center; margin-top:8px; min-height:1.3em; word-break:break-word;
+
+/* Each sentence block */
+.line-block {
+  width:100%;
+  text-align:center;
+  flex-shrink:0;
+  /* animate in from below */
+  animation:slideUp .35s ease-out forwards;
 }
-.interim-text {
-  font-size:clamp(13px,1.6vw,22px); text-align:center; margin-top:5px;
-  min-height:1.4em; font-style:italic; word-break:break-word; opacity:.4;
+
+@keyframes slideUp {
+  from { opacity:0; transform:translateY(18px); }
+  to   { opacity:1; transform:translateY(0); }
 }
-#interim-en { color:#93c5fd; }
-#interim-da { color:#fca5a5; }
-@keyframes shimmer { 0%,100%{opacity:.2} 50%{opacity:.55} }
-.shimmer {
-  animation:shimmer 1s infinite; color:rgba(255,255,255,.35)!important;
-  font-style:italic; font-weight:400!important; font-size:clamp(13px,1.7vw,22px)!important;
+
+/* Age classes applied to older blocks */
+.line-block.age0 {
+  /* newest — biggest, brightest */
+  font-size:clamp(28px,3.8vw,58px);
+  font-weight:700;
+  color:#ffffff;
+  line-height:1.25;
+  padding:6px 0;
+}
+.line-block.age1 {
+  font-size:clamp(18px,2.4vw,34px);
+  font-weight:500;
+  color:rgba(255,255,255,.45);
+  line-height:1.3;
+  padding:4px 0;
+}
+.line-block.age2 {
+  font-size:clamp(13px,1.7vw,22px);
+  font-weight:400;
+  color:rgba(255,255,255,.18);
+  line-height:1.4;
+  padding:3px 0;
+}
+.line-block.age3 {
+  font-size:clamp(10px,1.2vw,16px);
+  font-weight:400;
+  color:rgba(255,255,255,.07);
+  line-height:1.4;
+  padding:2px 0;
+}
+
+/* transition older blocks smoothly */
+.line-block {
+  transition: font-size .4s ease, color .4s ease, padding .4s ease;
+}
+
+/* interim live typing — shown below the latest block */
+.interim-line {
+  text-align:center; font-style:italic;
+  font-size:clamp(14px,1.8vw,24px);
+  color:rgba(255,255,255,.25);
+  padding:4px 0 0;
+  min-height:1.6em;
+  flex-shrink:0;
+}
+#interim-en { color:rgba(147,197,253,.4); }
+#interim-da { color:rgba(252,165,165,.4); }
+
+/* shimmer while translating */
+@keyframes shimmer { 0%,100%{opacity:.2} 50%{opacity:.5} }
+.shimmer-text {
+  animation:shimmer 1s infinite;
+  color:rgba(255,255,255,.3)!important;
+  font-style:italic;
 }
 
 /* ── controls ── */
 #controls {
-  padding:13px 22px; display:flex; align-items:center;
+  padding:12px 22px; display:flex; align-items:center;
   justify-content:center; gap:10px; background:rgba(255,255,255,.02);
   border-top:1px solid rgba(255,255,255,.06); flex-shrink:0;
 }
@@ -102,16 +159,16 @@ button:active { transform:scale(.96); }
 #btn-start:hover:not(:disabled) { background:#059669; }
 #btn-start:disabled { background:#1e293b; color:#4b5563; cursor:not-allowed; }
 #btn-stop  { background:#ef4444; color:#fff; }
-#btn-stop:hover:not(:disabled) { background:#dc2626; }
+#btn-stop:hover:not(:disabled)  { background:#dc2626; }
 #btn-stop:disabled { background:#1e293b; color:#4b5563; cursor:not-allowed; }
 #btn-clear { background:rgba(255,255,255,.07); color:rgba(255,255,255,.45); }
 #btn-clear:hover { background:rgba(255,255,255,.11); }
-#info { font-size:11px; color:rgba(255,255,255,.2); min-width:160px; text-align:center; }
+#info { font-size:11px; color:rgba(255,255,255,.2); min-width:150px; text-align:center; }
 
 #debug {
   position:fixed; bottom:54px; left:0; right:0; text-align:center;
   font-size:10px; color:rgba(255,255,255,.2); pointer-events:none;
-  padding:2px 8px; font-family:monospace;
+  padding:2px 8px; font-family:monospace; z-index:10;
 }
 #fs-btn {
   position:fixed; bottom:56px; right:14px; font-size:11px;
@@ -163,19 +220,15 @@ button:active { transform:scale(.96); }
 <div id="stage">
   <div class="col" id="col-en">
     <div class="col-header">🇬🇧 English</div>
-    <div class="subtitle-area">
-      <div id="hist-en"></div>
-      <div class="live-text"    id="live-en"></div>
-      <div class="interim-text" id="interim-en"></div>
+    <div class="scroll-area" id="scroll-en">
+      <div class="interim-line" id="interim-en"></div>
     </div>
   </div>
   <div class="divider"></div>
   <div class="col" id="col-da">
     <div class="col-header">🇩🇰 Dansk</div>
-    <div class="subtitle-area">
-      <div id="hist-da"></div>
-      <div class="live-text"    id="live-da"></div>
-      <div class="interim-text" id="interim-da"></div>
+    <div class="scroll-area" id="scroll-da">
+      <div class="interim-line" id="interim-da"></div>
     </div>
   </div>
 </div>
@@ -191,58 +244,132 @@ button:active { transform:scale(.96); }
 <button id="fs-btn" onclick="toggleFS()">⛶ Fullscreen</button>
 
 <script>
-// ═══════════════════════════════════════════════════════════
-//  TWO continuous recognizers, started 1.5s apart.
-//  Chrome only prompts for mic once because we call getUserMedia
-//  first (inside a real click handler) and keep that stream alive.
-//  Both recognizers share that already-open mic — no re-prompts.
-//
-//  AUTO mode: both run simultaneously. Whichever fires a final
-//  result wins that phrase. The other's interim is shown greyed.
-//  EN→DA mode: only the en-US recognizer is active.
-//  DA→EN mode: only the da-DK recognizer is active.
-//
-//  Language detection: NOT needed — the recognizer that produced
-//  the text IS the language. en-US result → English. da-DK → Danish.
-// ═══════════════════════════════════════════════════════════
-
-// ── State (all declared first — no hoisting bugs) ─────────
-const MAX_HIST   = 4;
+// ── All state declared first ───────────────────────────────
+const MAX_LINES  = 6;   // max sentence blocks per column
 let mode         = 'auto';
 let isRunning    = false;
 let recEN        = null;
 let recDA        = null;
 let micStream    = null;
-let lastWinText  = '';
-let lastWinTime  = 0;
 let xlating      = false;
-let histArrEN    = [];
-let histArrDA    = [];
+// Dedup: track last claimed phrase to prevent both recognizers handling same speech
+let claimedText  = '';
+let claimedAt    = 0;
 const xQueue     = [];
+// Per-column line tracking
+const linesEN    = [];  // array of DOM elements, index 0 = newest
+const linesDA    = [];
 
 // ── DOM ───────────────────────────────────────────────────
 const $         = id => document.getElementById(id);
-const liveEN    = $('live-en'),    liveDA    = $('live-da');
+const scrollEN  = $('scroll-en'),  scrollDA  = $('scroll-da');
 const intEN     = $('interim-en'), intDA     = $('interim-da');
-const histBoxEN = $('hist-en'),    histBoxDA = $('hist-da');
 const micDot    = $('mic-dot'),    micLbl    = $('mic-label');
 const infoEl    = $('info'),       dbgEl     = $('debug');
 const btnStart  = $('btn-start'),  btnStop   = $('btn-stop');
-const permOvr   = $('perm-overlay'),permErr  = $('perm-err');
+const permOvr   = $('perm-overlay'), permErr = $('perm-err');
 const btnGrant  = $('btn-grant');
 
 // ── Utils ─────────────────────────────────────────────────
 function log(m) { console.log('[subs]', m); dbgEl.textContent = m; }
-function setMic(cls, lbl) { micDot.className = cls; micLbl.textContent = lbl; infoEl.textContent = lbl; }
+function setMic(cls, lbl) {
+  micDot.className   = cls;
+  micLbl.textContent = lbl;
+  infoEl.textContent = lbl;
+}
 
-function pushHist(lang, text) {
-  const arr = lang === 'en' ? histArrEN : histArrDA;
-  const box = lang === 'en' ? histBoxEN : histBoxDA;
-  arr.push(text);
-  while (arr.length > MAX_HIST) arr.shift();
-  box.innerHTML = arr.map((t, i) =>
-    `<div class="sent-line age${arr.length - i}">${t}</div>`
-  ).join('');
+// ── Star Wars scroll ──────────────────────────────────────
+// Newest line is always at the bottom (age0 = biggest/brightest).
+// Each time a new line is added, existing lines get aged up.
+function addLine(col, text, isShimmer) {
+  const lines  = col === 'en' ? linesEN : linesDA;
+  const scroll = col === 'en' ? scrollEN : scrollDA;
+  const intEl  = col === 'en' ? intEN   : intDA;
+
+  // Age all existing lines up by one
+  lines.forEach((el, i) => {
+    el.classList.remove('age0','age1','age2','age3');
+    el.classList.add('age' + Math.min(i + 1, 3));
+  });
+
+  // Create new line block (age0 = newest = biggest)
+  const div = document.createElement('div');
+  div.className = 'line-block age0';
+  if (isShimmer) div.classList.add('shimmer-text');
+  div.textContent = text;
+
+  // Insert before the interim element (which stays at bottom)
+  scroll.insertBefore(div, intEl);
+  lines.unshift(div); // newest first in array
+
+  // Remove lines beyond MAX
+  while (lines.length > MAX_LINES) {
+    const old = lines.pop();
+    old.remove();
+  }
+}
+
+function updateNewest(col, text, isShimmer) {
+  const lines = col === 'en' ? linesEN : linesDA;
+  if (!lines.length) { addLine(col, text, isShimmer); return; }
+  const el = lines[0];
+  el.textContent = text;
+  if (isShimmer) el.classList.add('shimmer-text');
+  else           el.classList.remove('shimmer-text');
+}
+
+// ── Translation queue ─────────────────────────────────────
+async function translate(text, from, to) {
+  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${from}|${to}`;
+  const go  = () => fetch(url).then(r => r.json()).then(d => {
+    if (d.responseStatus === 200) return d.responseData.translatedText;
+    throw new Error(d.responseDetails);
+  });
+  const [a, b] = await Promise.allSettled([go(), go()]);
+  if (a.status === 'fulfilled') return a.value;
+  if (b.status === 'fulfilled') return b.value;
+  throw new Error('Translation failed');
+}
+
+function enqueue(spokenText, spokenLang) {
+  // Hard dedup — if this exact text was claimed within 2s, skip
+  const now = Date.now();
+  if (spokenText === claimedText && now - claimedAt < 2000) {
+    log('dedup skip [' + spokenLang + ']: ' + spokenText.slice(0, 30));
+    return;
+  }
+  claimedText = spokenText;
+  claimedAt   = now;
+
+  xQueue.push({ spokenText, spokenLang });
+  if (!xlating) drainQueue();
+}
+
+async function drainQueue() {
+  if (!xQueue.length) { xlating = false; if (isRunning) setMic('on', 'Listening…'); return; }
+  xlating = true;
+  const { spokenText, spokenLang } = xQueue.shift();
+  const isEN    = spokenLang === 'en';
+  const srcCol  = isEN ? 'en' : 'da';
+  const dstCol  = isEN ? 'da' : 'en';
+
+  // Add spoken text to its column
+  addLine(srcCol, spokenText, false);
+
+  // Add shimmer placeholder in translation column
+  addLine(dstCol, 'translating…', true);
+
+  setMic('busy', 'Translating…');
+
+  try {
+    const result = await translate(spokenText, isEN ? 'en' : 'da', isEN ? 'da' : 'en');
+    updateNewest(dstCol, result, false);
+  } catch(e) {
+    updateNewest(dstCol, '—', false);
+    log('Translation error: ' + e.message);
+  }
+
+  drainQueue();
 }
 
 // ── Mode toggle ───────────────────────────────────────────
@@ -251,71 +378,18 @@ function setMode(m) {
   $('ltab-auto').className = 'ltab' + (m === 'auto' ? ' active-auto' : '');
   $('ltab-en').className   = 'ltab' + (m === 'en'   ? ' active-en'   : '');
   $('ltab-da').className   = 'ltab' + (m === 'da'   ? ' active-da'   : '');
-
-  // If already running, enable/disable recognizers for the new mode
   if (!isRunning) return;
+  // Swap active recognizers to match new mode
   if (m === 'en') {
-    // Kill DA recognizer, make sure EN is running
     killRec(recDA); recDA = null;
     if (!recEN) recEN = makeRec('en');
   } else if (m === 'da') {
-    // Kill EN recognizer, make sure DA is running
     killRec(recEN); recEN = null;
     if (!recDA) recDA = makeRec('da');
   } else {
-    // AUTO — both should be running
     if (!recEN) recEN = makeRec('en');
-    if (!recDA) { setTimeout(() => { if (isRunning && !recDA) recDA = makeRec('da'); }, 1500); }
+    if (!recDA) setTimeout(() => { if (isRunning && !recDA) recDA = makeRec('da'); }, 1500);
   }
-}
-
-// ── Translation ───────────────────────────────────────────
-async function translate(text, from, to) {
-  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${from}|${to}`;
-  const go  = () => fetch(url).then(r => r.json()).then(d => {
-    if (d.responseStatus === 200) return d.responseData.translatedText;
-    throw new Error(d.responseDetails);
-  });
-  // Two parallel requests — take whichever resolves first
-  const [a, b] = await Promise.allSettled([go(), go()]);
-  if (a.status === 'fulfilled') return a.value;
-  if (b.status === 'fulfilled') return b.value;
-  throw new Error('Translation failed');
-}
-
-function enqueue(text, spokenLang) {
-  // Dedupe: if same text was already queued skip it
-  if (xQueue.length && xQueue[xQueue.length - 1].text === text) return;
-  xQueue.push({ text, spokenLang });
-  if (!xlating) drainQueue();
-}
-
-async function drainQueue() {
-  if (!xQueue.length) { xlating = false; if (isRunning) setMic('on', 'Listening…'); return; }
-  xlating = true;
-  const { text, spokenLang } = xQueue.shift();
-  const isEN   = spokenLang === 'en';
-  const destEl = isEN ? liveDA : liveEN;
-
-  if (isEN) { pushHist('en', text); liveEN.textContent = ''; }
-  else      { pushHist('da', text); liveDA.textContent = ''; }
-
-  destEl.textContent = 'translating…';
-  destEl.classList.add('shimmer');
-  setMic('busy', 'Translating…');
-
-  try {
-    const result = await translate(text, isEN ? 'en' : 'da', isEN ? 'da' : 'en');
-    destEl.classList.remove('shimmer');
-    destEl.textContent = '';
-    if (isEN) pushHist('da', result);
-    else      pushHist('en', result);
-  } catch (e) {
-    destEl.classList.remove('shimmer');
-    destEl.textContent = '';
-    log('Translation error: ' + e.message);
-  }
-  drainQueue();
 }
 
 // ── Recognizer factory ────────────────────────────────────
@@ -325,11 +399,11 @@ function makeRec(lang) {
 
   const r = new SR();
   r.lang            = lang === 'en' ? 'en-US' : 'da-DK';
-  r.continuous      = true;   // never stops → never re-prompts
+  r.continuous      = true;
   r.interimResults  = true;
   r.maxAlternatives = 1;
 
-  r.onstart = () => { log(lang + ' recognizer started'); setMic('on', 'Listening…'); };
+  r.onstart = () => { log(lang.toUpperCase() + ' rec started'); setMic('on', 'Listening…'); };
 
   r.onresult = (e) => {
     let interim = '', finals = '';
@@ -339,56 +413,38 @@ function makeRec(lang) {
       else                      interim += t;
     }
 
-    // Show interim in this language's column
-    if (lang === 'en') { intEN.textContent = interim; }
-    else               { intDA.textContent = interim; }
+    // Update interim in this language's column
+    if (lang === 'en') intEN.textContent = interim;
+    else               intDA.textContent = interim;
 
     if (finals.trim()) {
-      const text = finals.trim();
-
-      // Clear interim
       if (lang === 'en') intEN.textContent = '';
       else               intDA.textContent = '';
-
-      // Dedup: if the other recognizer already handled this phrase, skip
-      const now = Date.now();
-      const age = now - lastWinTime;
-      if (text === lastWinText && age < 1200) {
-        log(lang + ' dup skipped: ' + text.slice(0, 30));
-        return;
-      }
-      lastWinText = text;
-      lastWinTime = now;
-
-      log(lang.toUpperCase() + ' final: ' + text.slice(0, 50));
-      enqueue(text, lang);
+      log(lang.toUpperCase() + ': ' + finals.trim().slice(0, 50));
+      enqueue(finals.trim(), lang);
     }
   };
 
   r.onerror = (e) => {
     log(lang + ' error: ' + e.error);
     if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
-      permErr.textContent = 'Microphone was blocked. Click 🔒 in the address bar → Site settings → Microphone → Allow → refresh.';
+      permErr.textContent  = 'Mic blocked. Click 🔒 → Site settings → Microphone → Allow → refresh.';
       permErr.style.display = 'block';
       permOvr.classList.add('show');
       stopAll();
     }
-    // no-speech and aborted are normal — ignore
   };
 
   r.onend = () => {
-    // continuous=true: onend only fires if Chrome forcibly ends it.
-    // Restart the same object — no new instance = no new permission prompt.
-    if (isRunning) {
-      const stillNeeded = (lang === 'en' && recEN === r) || (lang === 'da' && recDA === r);
-      if (stillNeeded) {
-        setTimeout(() => { try { r.start(); log(lang + ' restarted'); } catch(ex) {} }, 300);
-      }
+    // Only restart if this recognizer is still the active one
+    const stillActive = (lang === 'en' && recEN === r) || (lang === 'da' && recDA === r);
+    if (isRunning && stillActive) {
+      setTimeout(() => { try { r.start(); log(lang + ' restarted'); } catch(ex) { log(lang + ' restart failed: ' + ex.message); } }, 300);
     }
   };
 
   try { r.start(); }
-  catch (e) { log('makeRec start error (' + lang + '): ' + e.message); }
+  catch(e) { log('makeRec start (' + lang + ') error: ' + e.message); }
 
   return r;
 }
@@ -396,26 +452,20 @@ function makeRec(lang) {
 function killRec(r) {
   if (!r) return;
   r.onstart = r.onresult = r.onerror = r.onend = null;
-  try { r.abort(); } catch (e) {}
+  try { r.abort(); } catch(e) {}
 }
 
-// ── Start / Stop ──────────────────────────────────────────
+// ── Start / stop ──────────────────────────────────────────
 function doStart() {
   isRunning = true;
   btnStart.disabled = true;
   btnStop.disabled  = false;
-  log('Starting recognizers, mode=' + mode);
+  log('Starting, mode=' + mode);
 
-  if (mode === 'en' || mode === 'auto') {
-    recEN = makeRec('en');
-  }
+  if (mode === 'en' || mode === 'auto') recEN = makeRec('en');
   if (mode === 'da' || mode === 'auto') {
-    // Stagger DA start by 1.5s so Chrome doesn't see two simultaneous requests
-    setTimeout(() => {
-      if (isRunning && (mode === 'da' || mode === 'auto')) {
-        recDA = makeRec('da');
-      }
-    }, 1500);
+    // Stagger DA start 1.5s so Chrome doesn't see two simultaneous mic grabs
+    setTimeout(() => { if (isRunning && (mode === 'da' || mode === 'auto')) recDA = makeRec('da'); }, 1500);
   }
 }
 
@@ -427,46 +477,44 @@ function stopAll() {
   xQueue.length = 0; xlating = false;
   btnStart.disabled = false; btnStop.disabled = true;
   intEN.textContent = ''; intDA.textContent = '';
-  liveEN.classList.remove('shimmer'); liveDA.classList.remove('shimmer');
   setMic('off', 'Stopped');
 }
 
 // ── Permission flow ───────────────────────────────────────
-// getUserMedia is called directly inside a button click handler.
-// This is the ONLY reliable way Chrome shows the permission dialog.
-// We keep the stream alive — both recognizers then share the
-// already-open mic, so Chrome never re-prompts.
 btnGrant.addEventListener('click', async () => {
-  btnGrant.textContent = 'Requesting…';
-  btnGrant.disabled    = true;
+  btnGrant.textContent  = 'Requesting…';
+  btnGrant.disabled     = true;
   permErr.style.display = 'none';
-  log('getUserMedia…');
+  log('getUserMedia called from click…');
   try {
-    micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-    log('Mic granted ✓');
+    micStream = await navigator.mediaDevices.getUserMedia({ audio:true, video:false });
+    log('Mic granted ✓ tracks=' + micStream.getAudioTracks().length);
     permOvr.classList.remove('show');
     doStart();
-  } catch (e) {
-    log('getUserMedia denied: ' + e.name);
-    btnGrant.textContent = 'Try Again';
-    btnGrant.disabled    = false;
-    permErr.textContent  = 'Could not access microphone: ' + e.message;
+  } catch(e) {
+    log('getUserMedia denied: ' + e.name + ' ' + e.message);
+    btnGrant.textContent  = 'Try Again';
+    btnGrant.disabled     = false;
+    permErr.textContent   = 'Could not access microphone: ' + e.message;
     permErr.style.display = 'block';
   }
 });
 
 function startAll() {
-  // If mic already granted, skip the overlay
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    permErr.textContent   = 'Must be served over HTTPS. Use your GitHub Pages URL.';
+    permErr.style.display = 'block';
+    permOvr.classList.add('show');
+    return;
+  }
   if (navigator.permissions) {
-    navigator.permissions.query({ name: 'microphone' }).then(r => {
+    navigator.permissions.query({ name:'microphone' }).then(r => {
       log('Mic permission: ' + r.state);
       if (r.state === 'granted') {
-        navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-          micStream = stream;
-          doStart();
-        }).catch(e => log('gUM failed: ' + e.message));
+        navigator.mediaDevices.getUserMedia({ audio:true }).then(s => { micStream = s; doStart(); })
+          .catch(e => { log('gUM failed: ' + e.message); permOvr.classList.add('show'); });
       } else if (r.state === 'denied') {
-        permErr.textContent  = 'Microphone is blocked. Click 🔒 → Site settings → Microphone → Allow → refresh.';
+        permErr.textContent   = 'Mic blocked. Click 🔒 → Site settings → Microphone → Allow → refresh.';
         permErr.style.display = 'block';
         permOvr.classList.add('show');
       } else {
@@ -478,15 +526,15 @@ function startAll() {
   }
 }
 
+// ── Button / keyboard handlers ────────────────────────────
 btnStart.addEventListener('click', startAll);
 btnStop.addEventListener ('click', stopAll);
 $('btn-clear').addEventListener('click', () => {
-  histArrEN = []; histArrDA = [];
-  histBoxEN.innerHTML = ''; histBoxDA.innerHTML = '';
-  liveEN.textContent  = ''; liveDA.textContent  = '';
-  liveEN.classList.remove('shimmer'); liveDA.classList.remove('shimmer');
+  // Remove all line blocks, keep interim elements
+  linesEN.forEach(el => el.remove()); linesEN.length = 0;
+  linesDA.forEach(el => el.remove()); linesDA.length = 0;
   intEN.textContent = ''; intDA.textContent = '';
-  lastWinText = '';
+  claimedText = '';
 });
 
 document.addEventListener('keydown', e => {
@@ -496,7 +544,7 @@ document.addEventListener('keydown', e => {
 });
 
 function toggleFS() {
-  if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
   else document.exitFullscreen();
 }
 
@@ -504,18 +552,14 @@ function toggleFS() {
 setMode('auto');
 
 window.onload = () => {
-  const hasSR = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+  const hasSR   = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
   const isHTTPS = location.protocol === 'https:' || location.hostname === 'localhost';
-  log('Loaded. SR=' + hasSR + ' HTTPS=' + isHTTPS);
-  if (!hasSR) {
-    btnStart.disabled = true;
-    setMic('off', 'Requires Chrome or Edge');
-  }
+  log('SR=' + hasSR + ' HTTPS=' + isHTTPS);
+  if (!hasSR) { btnStart.disabled = true; setMic('off','Requires Chrome or Edge'); }
   if (!isHTTPS) {
-    permErr.textContent = 'Page must be served over HTTPS. Use your GitHub Pages URL.';
+    permErr.textContent   = 'Must be served over HTTPS. Use your GitHub Pages URL (https://...).';
     permErr.style.display = 'block';
     permOvr.classList.add('show');
-    btnStart.disabled = true;
   }
 };
 </script>

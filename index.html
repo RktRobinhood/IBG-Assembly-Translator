@@ -24,17 +24,17 @@ body {
   padding:4px 12px; border-radius:20px; border:1.5px solid rgba(255,255,255,.12);
   color:rgba(255,255,255,.3); cursor:pointer; transition:all .2s; background:none;
 }
-.ltab.active-en { border-color:#60a5fa; color:#93c5fd; background:rgba(96,165,250,.12); }
-.ltab.active-da { border-color:#f87171; color:#fca5a5; background:rgba(248,113,113,.12); }
-#ltab-auto.active-auto { border-color:#a78bfa; color:#c4b5fd; background:rgba(167,139,250,.12); }
+.ltab.active-en   { border-color:#60a5fa; color:#93c5fd; background:rgba(96,165,250,.12); }
+.ltab.active-da   { border-color:#f87171; color:#fca5a5; background:rgba(248,113,113,.12); }
+.ltab.active-auto { border-color:#a78bfa; color:#c4b5fd; background:rgba(167,139,250,.12); }
 #dot-wrap { display:flex; align-items:center; gap:7px; }
 #mic-dot { width:9px; height:9px; border-radius:50%; background:#374151; transition:background .3s; }
 #mic-dot.on   { background:#10b981; animation:pulse 2s infinite; }
 #mic-dot.busy { background:#f59e0b; }
 #mic-dot.off  { background:#6b7280; }
 @keyframes pulse {
-  0%,100% { box-shadow:0 0 0 0 rgba(16,185,129,.5); }
-  50%     { box-shadow:0 0 0 8px rgba(16,185,129,0); }
+  0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,.5);}
+  50%    {box-shadow:0 0 0 8px rgba(16,185,129,0);}
 }
 #mic-label { font-size:11px; color:rgba(255,255,255,.28); }
 
@@ -45,8 +45,8 @@ body {
 .divider { background:rgba(255,255,255,.07); }
 .col { display:flex; flex-direction:column; overflow:hidden; position:relative; }
 .col::after {
-  content:''; position:absolute; top:0; left:0; right:0; height:100px;
-  background:linear-gradient(to bottom,#080810 0%,rgba(8,8,16,0) 100%);
+  content:''; position:absolute; top:0; left:0; right:0; height:90px;
+  background:linear-gradient(to bottom,#080810,transparent);
   pointer-events:none; z-index:5;
 }
 .col-header {
@@ -57,39 +57,34 @@ body {
 #col-da .col-header { color:#f87171; border-bottom:1px solid rgba(248,113,113,.12); }
 
 .scroll-area {
-  flex:1; overflow:hidden; position:relative;
-  display:flex; flex-direction:column; justify-content:flex-end;
-  padding:0 24px 24px; gap:0;
+  flex:1; overflow:hidden; display:flex; flex-direction:column;
+  justify-content:flex-end; padding:0 22px 22px; gap:0;
 }
 
-/* Star Wars scale — each age step ~30% smaller than before */
+/* Star Wars — each step ~20% smaller than before */
 .line-block {
-  width:100%; text-align:center; flex-shrink:0;
+  width:100%; text-align:center; flex-shrink:0; word-break:break-word;
   animation:slideUp .3s ease-out forwards;
-  transition: font-size .4s ease, color .5s ease, padding .4s ease;
-  word-break:break-word;
+  transition:font-size .4s ease, color .5s ease, padding .4s ease;
 }
 @keyframes slideUp {
-  from { opacity:0; transform:translateY(14px); }
-  to   { opacity:1; transform:translateY(0); }
+  from{opacity:0;transform:translateY(12px);}
+  to  {opacity:1;transform:translateY(0);}
 }
-
-/* age0 = newest, biggest, brightest */
-.line-block.age0 { font-size:clamp(20px,2.7vw,40px); font-weight:700; color:#ffffff;          line-height:1.25; padding:5px 0; }
-.line-block.age1 { font-size:clamp(15px,1.9vw,28px); font-weight:500; color:rgba(255,255,255,.42); line-height:1.3;  padding:3px 0; }
-.line-block.age2 { font-size:clamp(11px,1.3vw,20px); font-weight:400; color:rgba(255,255,255,.17); line-height:1.4;  padding:2px 0; }
-.line-block.age3 { font-size:clamp(9px, 1.0vw,15px); font-weight:400; color:rgba(255,255,255,.06); line-height:1.4;  padding:2px 0; }
+.line-block.age0 { font-size:clamp(18px,2.3vw,34px); font-weight:700; color:#fff;                   line-height:1.25; padding:5px 0; }
+.line-block.age1 { font-size:clamp(13px,1.7vw,24px); font-weight:500; color:rgba(255,255,255,.40);  line-height:1.3;  padding:3px 0; }
+.line-block.age2 { font-size:clamp(10px,1.2vw,18px); font-weight:400; color:rgba(255,255,255,.16);  line-height:1.4;  padding:2px 0; }
+.line-block.age3 { font-size:clamp(8px, 0.9vw,13px); font-weight:400; color:rgba(255,255,255,.06);  line-height:1.4;  padding:1px 0; }
 
 .interim-line {
-  text-align:center; font-style:italic;
-  font-size:clamp(11px,1.4vw,18px);
-  padding:3px 0 0; min-height:1.5em; flex-shrink:0;
+  text-align:center; font-style:italic; flex-shrink:0;
+  font-size:clamp(10px,1.2vw,16px); padding:3px 0 0; min-height:1.4em;
 }
 #interim-en { color:rgba(147,197,253,.4); }
 #interim-da { color:rgba(252,165,165,.4); }
 
-@keyframes shimmer { 0%,100%{opacity:.2} 50%{opacity:.5} }
-.shimmer-text { animation:shimmer 1s infinite; color:rgba(255,255,255,.3)!important; font-style:italic; }
+@keyframes shimmer{0%,100%{opacity:.2}50%{opacity:.5}}
+.shimmer-text{animation:shimmer 1s infinite;color:rgba(255,255,255,.3)!important;font-style:italic;}
 
 #controls {
   padding:12px 22px; display:flex; align-items:center;
@@ -100,43 +95,43 @@ button {
   border:none; border-radius:8px; cursor:pointer;
   font-size:13px; font-weight:600; padding:9px 20px; transition:all .15s;
 }
-button:active { transform:scale(.96); }
-#btn-start { background:#10b981; color:#fff; min-width:110px; }
-#btn-start:hover:not(:disabled) { background:#059669; }
-#btn-start:disabled { background:#1e293b; color:#4b5563; cursor:not-allowed; }
-#btn-stop  { background:#ef4444; color:#fff; }
-#btn-stop:hover:not(:disabled)  { background:#dc2626; }
-#btn-stop:disabled { background:#1e293b; color:#4b5563; cursor:not-allowed; }
-#btn-clear { background:rgba(255,255,255,.07); color:rgba(255,255,255,.45); }
-#btn-clear:hover { background:rgba(255,255,255,.11); }
-#info { font-size:11px; color:rgba(255,255,255,.2); min-width:150px; text-align:center; }
+button:active{transform:scale(.96);}
+#btn-start{background:#10b981;color:#fff;min-width:110px;}
+#btn-start:hover:not(:disabled){background:#059669;}
+#btn-start:disabled{background:#1e293b;color:#4b5563;cursor:not-allowed;}
+#btn-stop{background:#ef4444;color:#fff;}
+#btn-stop:hover:not(:disabled){background:#dc2626;}
+#btn-stop:disabled{background:#1e293b;color:#4b5563;cursor:not-allowed;}
+#btn-clear{background:rgba(255,255,255,.07);color:rgba(255,255,255,.45);}
+#btn-clear:hover{background:rgba(255,255,255,.11);}
+#info{font-size:11px;color:rgba(255,255,255,.2);min-width:150px;text-align:center;}
 
-#debug {
-  position:fixed; bottom:54px; left:0; right:0; text-align:center;
-  font-size:10px; color:rgba(255,255,255,.2); pointer-events:none;
-  padding:2px 8px; font-family:monospace; z-index:10;
+#debug{
+  position:fixed;bottom:54px;left:0;right:0;text-align:center;
+  font-size:10px;color:rgba(255,255,255,.22);pointer-events:none;
+  padding:2px 8px;font-family:monospace;z-index:10;
 }
-#fs-btn {
-  position:fixed; bottom:56px; right:14px; font-size:11px;
-  color:rgba(255,255,255,.13); cursor:pointer; background:none; border:none; padding:3px;
+#fs-btn{
+  position:fixed;bottom:56px;right:14px;font-size:11px;
+  color:rgba(255,255,255,.13);cursor:pointer;background:none;border:none;padding:3px;
 }
 
-#perm-overlay {
-  display:none; position:fixed; inset:0; z-index:500;
-  background:rgba(8,8,16,.97); flex-direction:column;
-  align-items:center; justify-content:center; gap:18px;
-  text-align:center; padding:40px;
+#perm-overlay{
+  display:none;position:fixed;inset:0;z-index:500;
+  background:rgba(8,8,16,.97);flex-direction:column;
+  align-items:center;justify-content:center;gap:18px;
+  text-align:center;padding:40px;
 }
-#perm-overlay.show { display:flex; }
-#perm-overlay h2 { font-size:26px; font-weight:700; }
-#perm-overlay p  { font-size:15px; color:rgba(255,255,255,.5); max-width:440px; line-height:1.6; }
-#btn-grant {
-  background:#10b981; color:#fff; font-size:17px; font-weight:700;
-  padding:14px 36px; border-radius:12px; border:none; cursor:pointer;
+#perm-overlay.show{display:flex;}
+#perm-overlay h2{font-size:26px;font-weight:700;}
+#perm-overlay p{font-size:15px;color:rgba(255,255,255,.5);max-width:440px;line-height:1.6;}
+#btn-grant{
+  background:#10b981;color:#fff;font-size:17px;font-weight:700;
+  padding:14px 36px;border-radius:12px;border:none;cursor:pointer;
 }
-#btn-grant:hover { background:#059669; }
-#btn-grant:disabled { background:#374151; cursor:not-allowed; }
-#perm-err { color:#fca5a5; font-size:13px; display:none; max-width:440px; line-height:1.5; }
+#btn-grant:hover{background:#059669;}
+#btn-grant:disabled{background:#374151;cursor:not-allowed;}
+#perm-err{color:#fca5a5;font-size:13px;display:none;max-width:440px;line-height:1.5;}
 </style>
 </head>
 <body>
@@ -190,61 +185,87 @@ button:active { transform:scale(.96); }
 
 <script>
 // ═══════════════════════════════════════════════════════════
-//  AUTO MODE — sample-then-lock
-//  ───────────────────────────
-//  On start (or after a pause), BOTH recognizers listen for
-//  up to SAMPLE_MS milliseconds. Whichever fires a final result
-//  first becomes the "locked" language. The other is aborted.
-//  We stay locked on that language until PAUSE_MS of silence,
-//  then we go back to sampling again.
+//  AUTO MODE — single recognizer, sample then lock
+//  ─────────────────────────────────────────────────────────
+//  Phase 1 SAMPLE: Start ONE recognizer (en-US). Listen for
+//  up to SAMPLE_MS. If we get any interim text, run it through
+//  the Danish wordlist. If DA score >= threshold → swap to
+//  da-DK recognizer and lock. Otherwise lock on en-US.
 //
-//  EN / DA modes: single recognizer only, no sampling needed.
+//  Phase 2 LOCKED: Single recognizer runs continuously.
+//  After PAUSE_MS of silence (no finals), return to Phase 1.
 //
-//  ONE getUserMedia call keeps the mic open. Both recognizers
-//  share it — Chrome never re-prompts.
+//  This means only ONE recognizer is ever running at once —
+//  no fighting, no mic re-prompts, clean behaviour.
 // ═══════════════════════════════════════════════════════════
 
-// ── State ─────────────────────────────────────────────────
-const MAX_LINES   = 5;
-const SAMPLE_MS   = 3000;  // how long to run both recogs before locking
-const PAUSE_MS    = 2500;  // silence after locked speech → re-sample
+const MAX_LINES  = 5;
+const SAMPLE_MS  = 2500;  // max time to decide language
+const PAUSE_MS   = 3000;  // silence before re-sampling
 
-let mode          = 'auto';
-let isRunning     = false;
-let micStream     = null;
-let xlating       = false;
-let lockedLang    = null;   // 'en' | 'da' | null (sampling)
-let recEN         = null;
-let recDA         = null;
-let sampleTimer   = null;   // fallback if neither fires in SAMPLE_MS
-let pauseTimer    = null;   // reset lock after PAUSE_MS of silence
-let lastQueued    = '';
-const xQueue      = [];
-const linesEN     = [];
-const linesDA     = [];
+// Danish discriminator — only words unlikely to appear in English
+const DA_UNIQUE = new Set([
+  'og','ikke','på','med','for','til','af','om','den','som','der','men',
+  'vil','kan','vi','du','har','han','hun','sig','var','jeg','fra','hvad',
+  'hvor','når','så','også','eller','nu','da','jo','hej','tak','ja','nej',
+  'god','godt','dag','meget','alle','nogle','mange','mere','samme','første',
+  'store','lille','siger','sagde','bare','lidt','rigtig','faktisk','blive',
+  'disse','dette','siden','altså','nemlig','fordi','selvom','alligevel',
+  'egentlig','skolen','klasse','elever','lærere','hvem','dem','jer','os',
+  'mit','din','sin','vores','deres','ham','hende','hvilken','hvilke','mens',
+  'selvfølgelig','naturligvis','desværre','heldigvis','forhåbentlig',
+  'barnehaven','børnehaven','kindergarten','datter','søn','mor','far',
+  'skole','hjem','arbejde','venner','familie','mennesker','verden',
+  'ligesom','alligevel','stadig','allerede','aldrig','altid','måske',
+  'hvorfor','fordi','derfor','alligevel','ellers','hverken','både','enten'
+]);
+
+function scoreDanish(text) {
+  // Also check for Danish characters — definitive signal
+  if (/[æøå]/i.test(text)) return 1.0;
+  const words = text.toLowerCase().replace(/[^a-z\s]/g,'').split(/\s+/).filter(Boolean);
+  if (!words.length) return 0;
+  const hits = words.filter(w => DA_UNIQUE.has(w)).length;
+  return hits / words.length;
+}
+
+// ── State ─────────────────────────────────────────────────
+let mode         = 'auto';
+let isRunning    = false;
+let micStream    = null;
+let rec          = null;        // only ONE recognizer at a time
+let recLang      = null;        // 'en-US' or 'da-DK'
+let locked       = false;       // true = past sampling phase
+let sampleTimer  = null;
+let pauseTimer   = null;
+let xlating      = false;
+let lastQueued   = '';
+const xQueue     = [];
+const linesEN    = [];
+const linesDA    = [];
 
 // ── DOM ───────────────────────────────────────────────────
-const $         = id => document.getElementById(id);
-const scrollEN  = $('scroll-en'),  scrollDA  = $('scroll-da');
-const intEN     = $('interim-en'), intDA     = $('interim-da');
-const micDot    = $('mic-dot'),    micLbl    = $('mic-label');
-const infoEl    = $('info'),       dbgEl     = $('debug');
-const btnStart  = $('btn-start'),  btnStop   = $('btn-stop');
-const permOvr   = $('perm-overlay'), permErr = $('perm-err');
-const btnGrant  = $('btn-grant');
+const $        = id => document.getElementById(id);
+const scrollEN = $('scroll-en'), scrollDA = $('scroll-da');
+const intEN    = $('interim-en'), intDA   = $('interim-da');
+const micDot   = $('mic-dot'),   micLbl  = $('mic-label');
+const infoEl   = $('info'),      dbgEl   = $('debug');
+const btnStart = $('btn-start'), btnStop = $('btn-stop');
+const permOvr  = $('perm-overlay'), permErr = $('perm-err');
+const btnGrant = $('btn-grant');
 
-function log(m)               { console.log('[subs]', m); dbgEl.textContent = m; }
-function setMic(cls, lbl)     { micDot.className = cls; micLbl.textContent = lbl; infoEl.textContent = lbl; }
+function log(m)           { console.log('[subs]',m); dbgEl.textContent = m; }
+function setMic(cls, lbl) { micDot.className=cls; micLbl.textContent=lbl; infoEl.textContent=lbl; }
 
 // ── Star Wars scroll ──────────────────────────────────────
 function addLine(col, text, shimmer) {
-  const lines  = col === 'en' ? linesEN : linesDA;
-  const scroll = col === 'en' ? scrollEN : scrollDA;
-  const intEl  = col === 'en' ? intEN : intDA;
+  const lines  = col==='en' ? linesEN  : linesDA;
+  const scroll = col==='en' ? scrollEN : scrollDA;
+  const intEl  = col==='en' ? intEN    : intDA;
 
-  lines.forEach((el, i) => {
+  lines.forEach((el,i) => {
     el.classList.remove('age0','age1','age2','age3');
-    el.classList.add('age' + Math.min(i + 1, 3));
+    el.classList.add('age' + Math.min(i+1, 3));
   });
 
   const div = document.createElement('div');
@@ -253,12 +274,11 @@ function addLine(col, text, shimmer) {
   div.textContent = text;
   scroll.insertBefore(div, intEl);
   lines.unshift(div);
-
   while (lines.length > MAX_LINES) lines.pop().remove();
 }
 
 function updateNewest(col, text) {
-  const lines = col === 'en' ? linesEN : linesDA;
+  const lines = col==='en' ? linesEN : linesDA;
   if (!lines.length) { addLine(col, text, false); return; }
   lines[0].textContent = text;
   lines[0].classList.remove('shimmer-text');
@@ -267,180 +287,183 @@ function updateNewest(col, text) {
 // ── Translation ───────────────────────────────────────────
 async function translate(text, from, to) {
   const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${from}|${to}`;
-  const go  = () => fetch(url).then(r => r.json()).then(d => {
-    if (d.responseStatus === 200) return d.responseData.translatedText;
+  const go  = () => fetch(url).then(r=>r.json()).then(d=>{
+    if (d.responseStatus===200) return d.responseData.translatedText;
     throw new Error(d.responseDetails);
   });
-  const [a, b] = await Promise.allSettled([go(), go()]);
-  if (a.status === 'fulfilled') return a.value;
-  if (b.status === 'fulfilled') return b.value;
+  const [a,b] = await Promise.allSettled([go(), go()]);
+  if (a.status==='fulfilled') return a.value;
+  if (b.status==='fulfilled') return b.value;
   throw new Error('Translation failed');
 }
 
 function enqueue(text, lang) {
-  if (text === lastQueued) return;
+  if (text===lastQueued) return;
   lastQueued = text;
-  xQueue.push({ text, lang });
+  xQueue.push({text, lang});
   if (!xlating) drainQueue();
 }
 
 async function drainQueue() {
-  if (!xQueue.length) { xlating = false; if (isRunning) setMic('on', 'Listening…'); return; }
+  if (!xQueue.length) { xlating=false; if (isRunning) setMic('on','Listening…'); return; }
   xlating = true;
-  const { text, lang } = xQueue.shift();
-  const isEN   = lang === 'en';
-  const srcCol = isEN ? 'en' : 'da';
-  const dstCol = isEN ? 'da' : 'en';
-
-  addLine(srcCol, text, false);
-  addLine(dstCol, 'translating…', true);
-  setMic('busy', 'Translating…');
-
+  const {text, lang} = xQueue.shift();
+  const isEN = lang==='en';
+  addLine(isEN?'en':'da', text, false);
+  addLine(isEN?'da':'en', 'translating…', true);
+  setMic('busy','Translating…');
   try {
-    const result = await translate(text, isEN ? 'en' : 'da', isEN ? 'da' : 'en');
-    updateNewest(dstCol, result);
+    const result = await translate(text, isEN?'en':'da', isEN?'da':'en');
+    updateNewest(isEN?'da':'en', result);
   } catch(e) {
-    updateNewest(dstCol, '—');
-    log('Translate error: ' + e.message);
+    updateNewest(isEN?'da':'en', '—');
+    log('Translate err: '+e.message);
   }
   drainQueue();
 }
 
-// ── AUTO language sampling & locking ─────────────────────
+// ── Recognizer ────────────────────────────────────────────
 function clearTimers() {
-  if (sampleTimer) { clearTimeout(sampleTimer); sampleTimer = null; }
-  if (pauseTimer)  { clearTimeout(pauseTimer);  pauseTimer  = null; }
+  if (sampleTimer) { clearTimeout(sampleTimer); sampleTimer=null; }
+  if (pauseTimer)  { clearTimeout(pauseTimer);  pauseTimer=null;  }
 }
 
-function lockLang(lang) {
-  if (lockedLang === lang) return;
-  log('LOCKED: ' + lang.toUpperCase());
-  lockedLang = lang;
-  // Kill the losing recognizer
-  if (lang === 'en' && recDA) { killRec(recDA); recDA = null; }
-  if (lang === 'da' && recEN) { killRec(recEN); recEN = null; }
-  clearTimers();
-  setMic('on', 'Locked ' + lang.toUpperCase() + ' — listening…');
-}
-
-function startSampling() {
-  if (!isRunning || mode !== 'auto') return;
-  lockedLang = null;
-  log('SAMPLING…');
-  setMic('on', 'Sampling…');
-
-  // Start both recognizers
-  if (!recEN) recEN = makeRec('en');
-  if (!recDA) setTimeout(() => { if (isRunning && mode === 'auto' && !recDA) recDA = makeRec('da'); }, 600);
-
-  // If nobody speaks in SAMPLE_MS, default to EN and keep sampling
-  sampleTimer = setTimeout(() => {
-    if (!lockedLang && isRunning && mode === 'auto') {
-      log('No speech in sample window — re-sampling');
-      startSampling();
-    }
-  }, SAMPLE_MS);
-}
-
-function armPauseReset() {
-  // After locked speech, if silence for PAUSE_MS → re-sample
+function armPause() {
   clearTimers();
   pauseTimer = setTimeout(() => {
-    if (isRunning && mode === 'auto') {
-      log('Pause detected — re-sampling');
-      killRec(recEN); recEN = null;
-      killRec(recDA); recDA = null;
-      startSampling();
+    if (isRunning && mode==='auto') {
+      log('Pause — re-sampling');
+      startSample();
     }
   }, PAUSE_MS);
 }
 
-// ── Recognizer factory ────────────────────────────────────
-function makeRec(lang) {
+function switchRecTo(lang) {
+  // Kill current recognizer, start new one on different lang
+  // Uses SAME getUserMedia permission — no re-prompt
+  if (rec) {
+    rec.onstart=rec.onresult=rec.onerror=rec.onend=null;
+    try { rec.abort(); } catch(e) {}
+    rec = null;
+  }
+  recLang = lang;
+  startRec();
+}
+
+function startSample() {
+  // Phase 1: start en-US, wait for first interim to decide language
+  locked = false;
+  clearTimers();
+  log('SAMPLING (en-US probe)…');
+  setMic('on','Sampling…');
+  recLang = 'en-US';
+  startRec();
+
+  // Fallback: if nothing heard after SAMPLE_MS, stay on EN
+  sampleTimer = setTimeout(() => {
+    if (!locked && isRunning && mode==='auto') {
+      log('Sample timeout — defaulting EN');
+      locked = true;
+      // already on en-US, just continue
+    }
+  }, SAMPLE_MS);
+}
+
+function startRec() {
+  if (!isRunning) return;
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) return null;
+  if (!SR) return;
 
-  const r = new SR();
-  r.lang            = lang === 'en' ? 'en-US' : 'da-DK';
-  r.continuous      = true;
-  r.interimResults  = true;
-  r.maxAlternatives = 1;
+  rec = new SR();
+  rec.lang           = recLang;
+  rec.continuous     = true;
+  rec.interimResults = true;
+  rec.maxAlternatives = 1;
 
-  r.onstart = () => log(lang.toUpperCase() + ' rec on');
+  rec.onstart = () => {
+    log('REC: ' + recLang + (locked?' [locked]':' [sampling]'));
+    if (!xlating) setMic('on', locked ? 'Listening ['+recLang.split('-')[0]+']…' : 'Sampling…');
+  };
 
-  r.onresult = (e) => {
-    let interim = '', finals = '';
-    for (let i = e.resultIndex; i < e.results.length; i++) {
+  rec.onresult = (e) => {
+    let interim='', finals='';
+    for (let i=e.resultIndex; i<e.results.length; i++) {
       const t = e.results[i][0].transcript;
-      if (e.results[i].isFinal) finals  += t + ' ';
+      if (e.results[i].isFinal) finals  += t+' ';
       else                      interim += t;
     }
 
-    // In AUTO mode: first result locks the language
-    if (mode === 'auto' && !lockedLang && (interim || finals)) {
-      lockLang(lang);
+    const sample = interim || finals.trim();
+
+    // ── Sampling phase: use first interim to detect language ──
+    if (!locked && mode==='auto' && sample.length > 2) {
+      clearTimers();
+      const score = scoreDanish(sample);
+      log('DA score: ' + score.toFixed(2) + ' — "' + sample.slice(0,30) + '"');
+      if (score >= 0.2) {
+        // Sounds Danish — swap to da-DK
+        locked = true;
+        log('LOCKED: da-DK');
+        setMic('on','Locked DA…');
+        switchRecTo('da-DK');
+        return; // old rec is now dead
+      } else {
+        // Sounds English — lock on en-US (already running)
+        locked = true;
+        log('LOCKED: en-US');
+        setMic('on','Locked EN…');
+      }
     }
 
-    // Only process results from the locked language (or if not in auto)
-    if (mode === 'auto' && lockedLang !== lang) return;
-
-    if (lang === 'en') intEN.textContent = interim;
-    else               intDA.textContent = interim;
+    // ── Locked phase ──────────────────────────────────────
+    const lang = recLang.startsWith('en') ? 'en' : 'da';
+    if (lang==='en') intEN.textContent = interim;
+    else             intDA.textContent = interim;
 
     if (finals.trim()) {
-      if (lang === 'en') intEN.textContent = '';
-      else               intDA.textContent = '';
-      log(lang.toUpperCase() + ': ' + finals.trim().slice(0, 50));
+      if (lang==='en') intEN.textContent='';
+      else             intDA.textContent='';
+      log(lang.toUpperCase()+': '+finals.trim().slice(0,50));
       enqueue(finals.trim(), lang);
-      if (mode === 'auto') armPauseReset();
+      if (mode==='auto') armPause();
     }
   };
 
-  r.onerror = (e) => {
-    if (e.error === 'no-speech' || e.error === 'aborted') return;
-    log(lang + ' error: ' + e.error);
-    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
-      permErr.textContent  = 'Mic blocked. Click 🔒 → Site settings → Microphone → Allow → refresh.';
-      permErr.style.display = 'block';
+  rec.onerror = (e) => {
+    if (e.error==='no-speech'||e.error==='aborted') return;
+    log('REC err: '+e.error);
+    if (e.error==='not-allowed'||e.error==='service-not-allowed') {
+      permErr.textContent='Mic blocked. Click 🔒 → Site settings → Microphone → Allow → refresh.';
+      permErr.style.display='block';
       permOvr.classList.add('show');
       stopAll();
     }
   };
 
-  r.onend = () => {
-    const stillActive = (lang === 'en' && recEN === r) || (lang === 'da' && recDA === r);
-    if (isRunning && stillActive) {
-      setTimeout(() => { try { r.start(); } catch(ex) { log(lang + ' restart err: ' + ex.message); } }, 250);
+  rec.onend = () => {
+    // Restart same recognizer if still active
+    if (isRunning && rec) {
+      setTimeout(() => { try { rec && rec.start(); } catch(ex) {} }, 250);
     }
   };
 
-  try { r.start(); }
-  catch(e) { log('makeRec(' + lang + ') start err: ' + e.message); }
-  return r;
-}
-
-function killRec(r) {
-  if (!r) return;
-  r.onstart = r.onresult = r.onerror = r.onend = null;
-  try { r.abort(); } catch(e) {}
+  try { rec.start(); }
+  catch(e) { log('rec.start err: '+e.message); }
 }
 
 // ── Mode toggle ───────────────────────────────────────────
 function setMode(m) {
   mode = m;
-  $('ltab-auto').className = 'ltab' + (m === 'auto' ? ' active-auto' : '');
-  $('ltab-en').className   = 'ltab' + (m === 'en'   ? ' active-en'   : '');
-  $('ltab-da').className   = 'ltab' + (m === 'da'   ? ' active-da'   : '');
+  $('ltab-auto').className = 'ltab' + (m==='auto' ? ' active-auto' : '');
+  $('ltab-en').className   = 'ltab' + (m==='en'   ? ' active-en'   : '');
+  $('ltab-da').className   = 'ltab' + (m==='da'   ? ' active-da'   : '');
   if (!isRunning) return;
-
   clearTimers();
-  lockedLang = null;
-  killRec(recEN); recEN = null;
-  killRec(recDA); recDA = null;
-
-  if (m === 'en') { recEN = makeRec('en'); }
-  else if (m === 'da') { recDA = makeRec('da'); }
-  else { startSampling(); }
+  if (rec) { rec.onstart=rec.onresult=rec.onerror=rec.onend=null; try{rec.abort();}catch(e){} rec=null; }
+  locked = false;
+  if (m==='en')   { recLang='en-US'; startRec(); }
+  else if(m==='da'){ recLang='da-DK'; startRec(); }
+  else            { startSample(); }
 }
 
 // ── Start / stop ──────────────────────────────────────────
@@ -448,103 +471,89 @@ function doStart() {
   isRunning = true;
   btnStart.disabled = true;
   btnStop.disabled  = false;
-  log('Starting, mode=' + mode);
-
-  if (mode === 'en')       { recEN = makeRec('en'); }
-  else if (mode === 'da')  { recDA = makeRec('da'); }
-  else                     { startSampling(); }
+  if (mode==='en')        { recLang='en-US'; startRec(); }
+  else if (mode==='da')   { recLang='da-DK'; startRec(); }
+  else                    { startSample(); }
 }
 
 function stopAll() {
   isRunning = false;
   clearTimers();
-  lockedLang = null;
-  killRec(recEN); recEN = null;
-  killRec(recDA); recDA = null;
-  if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
-  xQueue.length = 0; xlating = false;
-  btnStart.disabled = false; btnStop.disabled = true;
-  intEN.textContent = ''; intDA.textContent = '';
-  setMic('off', 'Stopped');
+  locked = false;
+  if (rec) { rec.onstart=rec.onresult=rec.onerror=rec.onend=null; try{rec.abort();}catch(e){} rec=null; }
+  if (micStream) { micStream.getTracks().forEach(t=>t.stop()); micStream=null; }
+  xQueue.length=0; xlating=false;
+  btnStart.disabled=false; btnStop.disabled=true;
+  intEN.textContent=''; intDA.textContent='';
+  setMic('off','Stopped');
 }
 
-// ── Permission flow ───────────────────────────────────────
+// ── Permission ────────────────────────────────────────────
 btnGrant.addEventListener('click', async () => {
-  btnGrant.textContent  = 'Requesting…';
-  btnGrant.disabled     = true;
-  permErr.style.display = 'none';
+  btnGrant.textContent='Requesting…'; btnGrant.disabled=true;
+  permErr.style.display='none';
   try {
-    micStream = await navigator.mediaDevices.getUserMedia({ audio:true, video:false });
+    micStream = await navigator.mediaDevices.getUserMedia({audio:true,video:false});
     log('Mic granted ✓');
     permOvr.classList.remove('show');
     doStart();
   } catch(e) {
-    log('getUserMedia denied: ' + e.name);
-    btnGrant.textContent  = 'Try Again';
-    btnGrant.disabled     = false;
-    permErr.textContent   = 'Could not access mic: ' + e.message;
-    permErr.style.display = 'block';
+    log('getUserMedia denied: '+e.name);
+    btnGrant.textContent='Try Again'; btnGrant.disabled=false;
+    permErr.textContent='Could not access mic: '+e.message;
+    permErr.style.display='block';
   }
 });
 
 function startAll() {
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    permErr.textContent   = 'Must be served over HTTPS. Use your GitHub Pages URL.';
-    permErr.style.display = 'block';
-    permOvr.classList.add('show');
-    return;
+  if (!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia) {
+    permErr.textContent='Must be served over HTTPS. Use your GitHub Pages URL.';
+    permErr.style.display='block'; permOvr.classList.add('show'); return;
   }
   if (navigator.permissions) {
-    navigator.permissions.query({ name:'microphone' }).then(r => {
-      log('Mic permission: ' + r.state);
-      if (r.state === 'granted') {
-        navigator.mediaDevices.getUserMedia({ audio:true }).then(s => { micStream = s; doStart(); })
-          .catch(e => { log('gUM err: ' + e.message); permOvr.classList.add('show'); });
-      } else if (r.state === 'denied') {
-        permErr.textContent   = 'Mic blocked. Click 🔒 → Site settings → Microphone → Allow → refresh.';
-        permErr.style.display = 'block';
-        permOvr.classList.add('show');
-      } else {
-        permOvr.classList.add('show');
-      }
-    }).catch(() => permOvr.classList.add('show'));
-  } else {
-    permOvr.classList.add('show');
-  }
+    navigator.permissions.query({name:'microphone'}).then(r => {
+      log('Mic permission: '+r.state);
+      if (r.state==='granted') {
+        navigator.mediaDevices.getUserMedia({audio:true}).then(s=>{micStream=s;doStart();})
+          .catch(e=>{log('gUM err: '+e.message); permOvr.classList.add('show');});
+      } else if (r.state==='denied') {
+        permErr.textContent='Mic blocked. Click 🔒 → Site settings → Microphone → Allow → refresh.';
+        permErr.style.display='block'; permOvr.classList.add('show');
+      } else { permOvr.classList.add('show'); }
+    }).catch(()=>permOvr.classList.add('show'));
+  } else { permOvr.classList.add('show'); }
 }
 
 btnStart.addEventListener('click', startAll);
 btnStop.addEventListener ('click', stopAll);
-$('btn-clear').addEventListener('click', () => {
-  linesEN.forEach(el => el.remove()); linesEN.length = 0;
-  linesDA.forEach(el => el.remove()); linesDA.length = 0;
-  intEN.textContent = ''; intDA.textContent = '';
-  lastQueued = '';
+$('btn-clear').addEventListener('click', ()=>{
+  linesEN.forEach(el=>el.remove()); linesEN.length=0;
+  linesDA.forEach(el=>el.remove()); linesDA.length=0;
+  intEN.textContent=''; intDA.textContent='';
+  lastQueued='';
 });
 
-document.addEventListener('keydown', e => {
-  if (e.key === ' ' && e.target === document.body) { e.preventDefault(); isRunning ? stopAll() : startAll(); }
-  if (e.key === 'Escape') stopAll();
-  if (e.key === 'F11') { e.preventDefault(); toggleFS(); }
+document.addEventListener('keydown', e=>{
+  if (e.key===' '&&e.target===document.body){e.preventDefault(); isRunning?stopAll():startAll();}
+  if (e.key==='Escape') stopAll();
+  if (e.key==='F11'){e.preventDefault();toggleFS();}
 });
 
-function toggleFS() {
+function toggleFS(){
   if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
   else document.exitFullscreen();
 }
 
 // ── Init ──────────────────────────────────────────────────
 setMode('auto');
-
 window.onload = () => {
-  const hasSR   = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
-  const isHTTPS = location.protocol === 'https:' || location.hostname === 'localhost';
-  log('SR=' + hasSR + ' HTTPS=' + isHTTPS);
-  if (!hasSR) { btnStart.disabled = true; setMic('off','Requires Chrome or Edge'); }
+  const hasSR   = !!(window.SpeechRecognition||window.webkitSpeechRecognition);
+  const isHTTPS = location.protocol==='https:'||location.hostname==='localhost';
+  log('SR='+hasSR+' HTTPS='+isHTTPS);
+  if (!hasSR) { btnStart.disabled=true; setMic('off','Requires Chrome or Edge'); }
   if (!isHTTPS) {
-    permErr.textContent   = 'Must be served over HTTPS. Use your GitHub Pages URL.';
-    permErr.style.display = 'block';
-    permOvr.classList.add('show');
+    permErr.textContent='Must be served over HTTPS. Use your GitHub Pages URL.';
+    permErr.style.display='block'; permOvr.classList.add('show');
   }
 };
 </script>

@@ -202,6 +202,42 @@ button:active{transform:scale(.96);}
   text-align:center; padding:60px 0; color:rgba(255,255,255,.2); font-size:14px;
 }
 
+/* ── Summary section ── */
+#summary-section {
+  border-top:1px solid rgba(255,255,255,.08);
+  padding:16px 20px; flex-shrink:0; background:rgba(255,255,255,.02);
+}
+#summary-section h3 {
+  font-size:12px; font-weight:700; color:rgba(255,255,255,.35);
+  letter-spacing:.08em; text-transform:uppercase; margin-bottom:10px;
+}
+#btn-summarise {
+  background:rgba(139,92,246,.2); color:#c4b5fd;
+  border:1px solid rgba(139,92,246,.3); font-size:13px; font-weight:600;
+  padding:8px 18px; border-radius:8px; cursor:pointer; transition:all .2s; min-height:36px;
+}
+#btn-summarise:hover:not(:disabled) { background:rgba(139,92,246,.35); }
+#btn-summarise:disabled { opacity:.4; cursor:not-allowed; }
+#summary-content { display:none; margin-top:14px; }
+#summary-content.show { display:block; }
+.summary-lang { margin-bottom:14px; }
+.summary-lang-label {
+  font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; margin-bottom:6px;
+}
+.summary-lang-label.en { color:rgba(147,197,253,.6); }
+.summary-lang-label.da { color:rgba(252,165,165,.6); }
+.summary-points { list-style:none; display:flex; flex-direction:column; gap:5px; }
+.summary-points li {
+  font-size:13px; line-height:1.55; padding:7px 11px;
+  background:rgba(255,255,255,.03); border-radius:6px; color:rgba(255,255,255,.75);
+}
+.summary-points li.en { border-left:2px solid rgba(96,165,250,.4); }
+.summary-points li.da { border-left:2px solid rgba(248,113,113,.4); }
+#summary-spinner { display:none; text-align:center; padding:14px 0; font-size:13px; color:rgba(255,255,255,.3); font-style:italic; }
+#summary-spinner.show { display:block; }
+#summary-err { display:none; color:#fca5a5; font-size:12px; margin-top:8px; }
+#summary-err.show { display:block; }
+
 /* ── permission overlay ── */
 #perm-overlay {
   display:none; position:fixed; inset:0; z-index:500;
@@ -244,6 +280,22 @@ button:active{transform:scale(.96);}
   </div>
   <div id="minutes-body">
     <div id="minutes-empty">No minutes yet — start the session and speak.</div>
+  </div>
+  <div id="summary-section">
+    <h3>✨ AI Secretary — Key Points</h3>
+    <button id="btn-summarise">Summarise assembly</button>
+    <div id="summary-spinner">Thinking…</div>
+    <div id="summary-err"></div>
+    <div id="summary-content">
+      <div class="summary-lang">
+        <div class="summary-lang-label en">🇬🇧 English key points</div>
+        <ul class="summary-points" id="summary-en"></ul>
+      </div>
+      <div class="summary-lang">
+        <div class="summary-lang-label da">🇩🇰 Danske nøglepunkter</div>
+        <ul class="summary-points" id="summary-da"></ul>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -306,6 +358,7 @@ const linesDA   = [];
 
 // Minutes: array of {time, en, da}
 let minutes = [];
+let summary = null; // {en: [...], da: [...]}
 
 // ── DOM ───────────────────────────────────────────────────
 const $         = id => document.getElementById(id);
@@ -327,13 +380,24 @@ function setMic(cls, lbl) { micDot.className=cls; micLbl.textContent=lbl; infoEl
 //  localStorage persistence
 // ══════════════════════════════════════════════════════════
 function saveMinutes() {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(minutes)); } catch(e) {}
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ minutes, summary })); } catch(e) {}
 }
 
 function loadMinutes() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) { minutes = JSON.parse(raw); renderAllMinutes(); }
+    if (raw) {
+      const stored = JSON.parse(raw);
+      // Support both old format (plain array) and new format ({minutes, summary})
+      if (Array.isArray(stored)) {
+        minutes = stored;
+      } else {
+        minutes = stored.minutes || [];
+        summary = stored.summary || null;
+      }
+      renderAllMinutes();
+      if (summary) renderSummary();
+    }
   } catch(e) { minutes = []; }
 }
 
@@ -481,7 +545,6 @@ function downloadMinutes() {
   txt +=    `${'─'.repeat(60)}\n`;
 
   minutes.forEach(e => {
-    // Wrap long lines
     const enLines = wrapText(e.en, 46);
     const daLines = wrapText(e.da, 46);
     const maxLines = Math.max(enLines.length, daLines.length);
@@ -493,6 +556,18 @@ function downloadMinutes() {
     }
     txt += '\n';
   });
+
+  // Append AI summary if available
+  if (summary && summary.en && summary.en.length) {
+    txt += `\n${'═'.repeat(60)}\n`;
+    txt += `AI SECRETARY — KEY POINTS\n`;
+    txt += `${'═'.repeat(60)}\n\n`;
+    txt += `ENGLISH\n${'─'.repeat(30)}\n`;
+    summary.en.forEach((pt, i) => { txt += `${i+1}. ${pt}\n`; });
+    txt += `\nDANISH / DANSK\n${'─'.repeat(30)}\n`;
+    summary.da.forEach((pt, i) => { txt += `${i+1}. ${pt}\n`; });
+    txt += '\n';
+  }
 
   const blob = new Blob([txt], {type:'text/plain;charset=utf-8'});
   const url  = URL.createObjectURL(blob);
@@ -525,9 +600,116 @@ $('btn-download').addEventListener('click', downloadMinutes);
 $('btn-minutes-clear').addEventListener('click', () => {
   if (!confirm('Clear all minutes? This cannot be undone.')) return;
   minutes = [];
+  summary = null;
   saveMinutes();
   renderAllMinutes();
+  // Reset summary UI
+  $('summary-content').classList.remove('show');
+  $('summary-en').innerHTML = '';
+  $('summary-da').innerHTML = '';
+  $('summary-err').className = 'show' in $('summary-err').classList ? '' : '';
+  $('summary-err').classList.remove('show');
 });
+
+// ══════════════════════════════════════════════════════════
+//  AI Summary via Anthropic API
+// ══════════════════════════════════════════════════════════
+
+function saveSummary() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    stored.summary = summary;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+  } catch(e) {}
+}
+
+function loadSummaryFromStorage(stored) {
+  if (stored && stored.summary) {
+    summary = stored.summary;
+    renderSummary();
+  }
+}
+
+function renderSummary() {
+  if (!summary) return;
+  const enList = $('summary-en');
+  const daList = $('summary-da');
+  enList.innerHTML = summary.en.map(pt => `<li class="en">${escHtml(pt)}</li>`).join('');
+  daList.innerHTML = summary.da.map(pt => `<li class="da">${escHtml(pt)}</li>`).join('');
+  $('summary-content').classList.add('show');
+}
+
+async function summariseAssembly() {
+  if (!minutes.length) {
+    $('summary-err').textContent = 'No minutes to summarise yet.';
+    $('summary-err').classList.add('show');
+    return;
+  }
+
+  const btn = $('btn-summarise');
+  const spinner = $('summary-spinner');
+  const errEl = $('summary-err');
+
+  btn.disabled = true;
+  spinner.classList.add('show');
+  errEl.classList.remove('show');
+  $('summary-content').classList.remove('show');
+
+  // Build transcript for Claude
+  const transcript = minutes.map(e =>
+    `[${e.time}] EN: ${e.en}\n[${e.time}] DA: ${e.da}`
+  ).join('\n\n');
+
+  const prompt = `You are the secretary for a school assembly. Below is a bilingual transcript (English and Danish) of what was said.
+
+Extract 4–8 key points from the assembly. Return ONLY valid JSON in this exact format, nothing else:
+{
+  "en": ["Key point 1 in English", "Key point 2 in English", "..."],
+  "da": ["Nøglepunkt 1 på dansk", "Nøglepunkt 2 på dansk", "..."]
+}
+
+The English and Danish lists must have the same number of items and be direct translations of each other.
+Be concise — each point should be one clear sentence.
+Focus on decisions made, announcements, events mentioned, and action items.
+
+TRANSCRIPT:
+${transcript}`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await response.json();
+    const raw = data.content.map(b => b.text || '').join('').trim();
+
+    // Strip any markdown fences just in case
+    const clean = raw.replace(/^```json\s*/i, '').replace(/```\s*$/,'').trim();
+    const parsed = JSON.parse(clean);
+
+    if (!parsed.en || !parsed.da || !Array.isArray(parsed.en)) throw new Error('Unexpected response format');
+
+    summary = parsed;
+    saveSummary();
+    renderSummary();
+    btn.textContent = 'Re-summarise';
+
+  } catch(e) {
+    errEl.textContent = 'Summary failed: ' + e.message + '. Make sure you are using the claude.ai hosted version of this page.';
+    errEl.classList.add('show');
+  } finally {
+    btn.disabled = false;
+    spinner.classList.remove('show');
+  }
+}
+
+$('btn-summarise').addEventListener('click', summariseAssembly);
 
 // ══════════════════════════════════════════════════════════
 //  Recognizer

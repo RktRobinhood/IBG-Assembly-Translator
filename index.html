@@ -16,8 +16,7 @@ body {
 #topbar {
   display:flex; align-items:center; justify-content:space-between;
   padding:10px 16px; background:rgba(255,255,255,0.03);
-  border-bottom:1px solid rgba(255,255,255,0.07); flex-shrink:0;
-  gap:8px;
+  border-bottom:1px solid rgba(255,255,255,0.07); flex-shrink:0; gap:8px;
 }
 #logo {
   font-size:11px; font-weight:700; letter-spacing:.07em;
@@ -29,12 +28,10 @@ body {
   font-size:11px; font-weight:700; letter-spacing:.06em;
   padding:5px 14px; border-radius:20px; border:1.5px solid rgba(255,255,255,.12);
   color:rgba(255,255,255,.3); cursor:pointer; transition:all .2s; background:none;
-  /* bigger touch target */
   min-height:34px; display:flex; align-items:center;
 }
 .ltab.active-en { border-color:#60a5fa; color:#93c5fd; background:rgba(96,165,250,.12); }
 .ltab.active-da { border-color:#f87171; color:#fca5a5; background:rgba(248,113,113,.12); }
-
 #dot-wrap { display:flex; align-items:center; gap:6px; flex-shrink:0; }
 #mic-dot { width:8px; height:8px; border-radius:50%; background:#374151; transition:background .3s; }
 #mic-dot.on   { background:#10b981; animation:pulse 2s infinite; }
@@ -46,29 +43,20 @@ body {
 }
 #mic-label { font-size:11px; color:rgba(255,255,255,.28); white-space:nowrap; }
 
-/* ── stage: side by side on desktop, stacked on mobile ── */
+/* ── stage ── */
 #stage {
   flex:1; display:grid;
-  grid-template-columns:1fr 1px 1fr;  /* desktop: two columns */
+  grid-template-columns:1fr 1px 1fr;
   overflow:hidden; min-height:0;
 }
-
-/* on narrow screens stack vertically */
 @media (max-width:600px) {
-  #stage {
-    grid-template-columns:1fr;
-    grid-template-rows:1fr 1px 1fr;
-  }
-  .divider {
-    width:100% !important;
-    height:1px !important;
-  }
+  #stage { grid-template-columns:1fr; grid-template-rows:1fr 1px 1fr; }
+  .divider { width:100% !important; height:1px !important; }
 }
-
 .divider { background:rgba(255,255,255,.07); }
 .col { display:flex; flex-direction:column; overflow:hidden; position:relative; }
 .col::after {
-  content:''; position:absolute; top:0; left:0; right:0; height:70px;
+  content:''; position:absolute; top:0; left:0; right:0; height:80px;
   background:linear-gradient(to bottom,#080810,transparent);
   pointer-events:none; z-index:5;
 }
@@ -84,38 +72,40 @@ body {
   justify-content:flex-end; padding:0 18px 18px; gap:0;
 }
 
-/* Star Wars lines */
+/* ── Star Wars lines — slower transitions ── */
 .line-block {
   width:100%; text-align:center; flex-shrink:0; word-break:break-word;
-  animation:slideUp .3s ease-out forwards;
-  transition:font-size .4s ease, color .5s ease, padding .4s ease;
+  animation:slideUp .4s ease-out forwards;
+  /* slower transition so slow readers can follow */
+  transition: font-size .8s ease, color 1.2s ease, padding .8s ease;
 }
 @keyframes slideUp {
-  from{opacity:0;transform:translateY(10px);}
+  from{opacity:0;transform:translateY(14px);}
   to  {opacity:1;transform:translateY(0);}
 }
 
-/* Desktop sizes */
-.line-block.age0 { font-size:clamp(18px,2.3vw,34px); font-weight:700; color:#fff;                  line-height:1.25; padding:5px 0; }
-.line-block.age1 { font-size:clamp(13px,1.7vw,24px); font-weight:500; color:rgba(255,255,255,.40); line-height:1.3;  padding:3px 0; }
-.line-block.age2 { font-size:clamp(10px,1.2vw,18px); font-weight:400; color:rgba(255,255,255,.16); line-height:1.4;  padding:2px 0; }
-.line-block.age3 { font-size:clamp(8px, 0.9vw,13px); font-weight:400; color:rgba(255,255,255,.06); line-height:1.4;  padding:1px 0; }
+/* age0 = newest/biggest; gentle size steps so text lingers large */
+.line-block.age0 { font-size:clamp(18px,2.4vw,36px); font-weight:700; color:#ffffff;                line-height:1.3; padding:6px 0; }
+.line-block.age1 { font-size:clamp(16px,2.1vw,30px); font-weight:600; color:rgba(255,255,255,.60); line-height:1.3; padding:5px 0; }
+.line-block.age2 { font-size:clamp(14px,1.8vw,25px); font-weight:400; color:rgba(255,255,255,.32); line-height:1.35; padding:4px 0; }
+.line-block.age3 { font-size:clamp(12px,1.5vw,20px); font-weight:400; color:rgba(255,255,255,.16); line-height:1.4; padding:3px 0; }
+.line-block.age4 { font-size:clamp(10px,1.2vw,16px); font-weight:400; color:rgba(255,255,255,.07); line-height:1.4; padding:2px 0; }
+.line-block.age5 { font-size:clamp(8px, 1.0vw,13px); font-weight:400; color:rgba(255,255,255,.03); line-height:1.4; padding:1px 0; }
 
-/* Mobile: each column is ~half screen height, tighter sizes */
 @media (max-width:600px) {
-  .line-block.age0 { font-size:clamp(16px,4.5vw,28px); padding:4px 0; }
-  .line-block.age1 { font-size:clamp(12px,3.2vw,20px); padding:2px 0; }
-  .line-block.age2 { font-size:clamp(9px, 2.4vw,15px); padding:2px 0; }
-  .line-block.age3 { font-size:clamp(7px, 1.8vw,11px); padding:1px 0; }
+  .line-block.age0 { font-size:clamp(16px,4.8vw,28px); padding:5px 0; }
+  .line-block.age1 { font-size:clamp(14px,4.0vw,23px); padding:4px 0; }
+  .line-block.age2 { font-size:clamp(12px,3.3vw,19px); padding:3px 0; }
+  .line-block.age3 { font-size:clamp(10px,2.7vw,15px); padding:2px 0; }
+  .line-block.age4 { font-size:clamp(8px, 2.2vw,12px); padding:1px 0; }
+  .line-block.age5 { font-size:clamp(7px, 1.8vw,10px); padding:1px 0; }
 }
 
 .interim-line {
   text-align:center; font-style:italic; flex-shrink:0;
-  font-size:clamp(9px,1.2vw,15px); padding:3px 0 0; min-height:1.3em;
+  font-size:clamp(10px,1.2vw,16px); padding:3px 0 0; min-height:1.4em;
 }
-@media (max-width:600px) {
-  .interim-line { font-size:clamp(9px,2.8vw,13px); }
-}
+@media (max-width:600px) { .interim-line { font-size:clamp(9px,2.8vw,13px); } }
 #interim-en { color:rgba(147,197,253,.4); }
 #interim-da { color:rgba(252,165,165,.4); }
 
@@ -126,38 +116,90 @@ body {
 #controls {
   padding:10px 16px; display:flex; align-items:center;
   justify-content:center; gap:8px; background:rgba(255,255,255,.02);
-  border-top:1px solid rgba(255,255,255,.06); flex-shrink:0;
-  flex-wrap:wrap;
+  border-top:1px solid rgba(255,255,255,.06); flex-shrink:0; flex-wrap:wrap;
 }
 button {
   border:none; border-radius:8px; cursor:pointer;
-  font-size:14px; font-weight:600; padding:10px 20px; transition:all .15s;
-  min-height:42px; /* comfortable touch target */
+  font-size:14px; font-weight:600; padding:10px 18px; transition:all .15s;
+  min-height:42px;
 }
 button:active{transform:scale(.96);}
-#btn-start { background:#10b981; color:#fff; min-width:100px; }
+#btn-start  { background:#10b981; color:#fff; min-width:100px; }
 #btn-start:hover:not(:disabled){ background:#059669; }
 #btn-start:disabled{ background:#1e293b; color:#4b5563; cursor:not-allowed; }
-#btn-stop  { background:#ef4444; color:#fff; }
+#btn-stop   { background:#ef4444; color:#fff; }
 #btn-stop:hover:not(:disabled){ background:#dc2626; }
 #btn-stop:disabled{ background:#1e293b; color:#4b5563; cursor:not-allowed; }
-#btn-clear { background:rgba(255,255,255,.07); color:rgba(255,255,255,.45); }
+#btn-clear  { background:rgba(255,255,255,.07); color:rgba(255,255,255,.45); }
 #btn-clear:hover{ background:rgba(255,255,255,.11); }
-
-/* hide spacebar hint on mobile, show fullscreen btn only on desktop */
+#btn-minutes{ background:rgba(99,102,241,.18); color:#a5b4fc; border:1px solid rgba(99,102,241,.3); }
+#btn-minutes:hover{ background:rgba(99,102,241,.28); }
 #info { font-size:11px; color:rgba(255,255,255,.18); text-align:center; }
-@media (max-width:600px) { #info { display:none; } }
+@media (max-width:600px){ #info{ display:none; } }
 
 #fs-btn {
   position:fixed; bottom:60px; right:12px; font-size:11px;
   color:rgba(255,255,255,.13); cursor:pointer; background:none; border:none; padding:4px;
 }
-@media (max-width:600px) { #fs-btn { display:none; } }
+@media (max-width:600px){ #fs-btn{ display:none; } }
 
 #debug {
   position:fixed; bottom:56px; left:0; right:0; text-align:center;
   font-size:9px; color:rgba(255,255,255,.18); pointer-events:none;
   padding:2px 8px; font-family:monospace; z-index:10;
+}
+
+/* ── Minutes panel ── */
+#minutes-panel {
+  display:none; position:fixed; inset:0; z-index:400;
+  background:rgba(8,8,16,.96); flex-direction:column;
+  overflow:hidden;
+}
+#minutes-panel.show { display:flex; }
+#minutes-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 20px; border-bottom:1px solid rgba(255,255,255,.08); flex-shrink:0;
+}
+#minutes-header h2 { font-size:16px; font-weight:700; color:rgba(255,255,255,.8); }
+#minutes-header-btns { display:flex; gap:8px; }
+#btn-download {
+  background:#10b981; color:#fff; font-size:13px; font-weight:600;
+  padding:7px 16px; border-radius:8px; border:none; cursor:pointer;
+}
+#btn-download:hover{ background:#059669; }
+#btn-minutes-clear {
+  background:rgba(239,68,68,.15); color:#fca5a5; font-size:13px; font-weight:600;
+  padding:7px 16px; border-radius:8px; border:1px solid rgba(239,68,68,.2); cursor:pointer;
+}
+#btn-minutes-clear:hover{ background:rgba(239,68,68,.25); }
+#btn-minutes-close {
+  background:rgba(255,255,255,.07); color:rgba(255,255,255,.5); font-size:13px;
+  padding:7px 14px; border-radius:8px; border:none; cursor:pointer;
+}
+#btn-minutes-close:hover{ background:rgba(255,255,255,.12); }
+
+#minutes-body {
+  flex:1; overflow-y:auto; padding:16px 20px;
+  display:flex; flex-direction:column; gap:8px;
+}
+#minutes-body::-webkit-scrollbar { width:4px; }
+#minutes-body::-webkit-scrollbar-track { background:transparent; }
+#minutes-body::-webkit-scrollbar-thumb { background:rgba(255,255,255,.12); border-radius:2px; }
+
+.minute-entry {
+  display:grid; grid-template-columns:56px 1fr 1fr;
+  gap:10px; align-items:start; padding:8px 0;
+  border-bottom:1px solid rgba(255,255,255,.04);
+}
+@media (max-width:600px) {
+  .minute-entry { grid-template-columns:44px 1fr; }
+  .minute-da    { grid-column:2; }
+}
+.minute-time { font-size:11px; color:rgba(255,255,255,.25); padding-top:2px; font-family:monospace; }
+.minute-en   { font-size:13px; color:rgba(147,197,253,.85); line-height:1.5; }
+.minute-da   { font-size:13px; color:rgba(252,165,165,.85); line-height:1.5; }
+#minutes-empty {
+  text-align:center; padding:60px 0; color:rgba(255,255,255,.2); font-size:14px;
 }
 
 /* ── permission overlay ── */
@@ -172,22 +214,37 @@ button:active{transform:scale(.96);}
 #perm-overlay p  { font-size:15px; color:rgba(255,255,255,.5); max-width:400px; line-height:1.6; }
 #btn-grant {
   background:#10b981; color:#fff; font-size:17px; font-weight:700;
-  padding:15px 36px; border-radius:12px; border:none; cursor:pointer;
-  min-height:52px;
+  padding:15px 36px; border-radius:12px; border:none; cursor:pointer; min-height:52px;
 }
-#btn-grant:hover { background:#059669; }
-#btn-grant:disabled { background:#374151; cursor:not-allowed; }
+#btn-grant:hover{ background:#059669; }
+#btn-grant:disabled{ background:#374151; cursor:not-allowed; }
 #perm-err { color:#fca5a5; font-size:13px; display:none; max-width:400px; line-height:1.5; }
 </style>
 </head>
 <body>
 
+<!-- Permission overlay -->
 <div id="perm-overlay">
   <div style="font-size:52px">🎤</div>
   <h2>Microphone Access Needed</h2>
   <p>Tap the button below, then tap <strong>Allow</strong> when your browser asks.<br>This only happens once.</p>
   <button id="btn-grant">Allow Microphone &amp; Start</button>
   <div id="perm-err"></div>
+</div>
+
+<!-- Minutes panel -->
+<div id="minutes-panel">
+  <div id="minutes-header">
+    <h2>📋 Assembly Minutes</h2>
+    <div id="minutes-header-btns">
+      <button id="btn-download">⬇ Download .txt</button>
+      <button id="btn-minutes-clear">🗑 Clear</button>
+      <button id="btn-minutes-close">✕ Close</button>
+    </div>
+  </div>
+  <div id="minutes-body">
+    <div id="minutes-empty">No minutes yet — start the session and speak.</div>
+  </div>
 </div>
 
 <div id="topbar">
@@ -222,16 +279,21 @@ button:active{transform:scale(.96);}
   <button id="btn-start">▶ Start</button>
   <button id="btn-stop" disabled>⏹ Stop</button>
   <button id="btn-clear">✕ Clear</button>
-  <div id="info">Spacebar to toggle</div>
+  <button id="btn-minutes">📋 Minutes</button>
+  <div id="info">Spacebar to toggle · M for minutes</div>
 </div>
 
 <div id="debug"></div>
 <button id="fs-btn" onclick="toggleFS()">⛶ Fullscreen</button>
 
 <script>
-// ── State ─────────────────────────────────────────────────
-const MAX_LINES = 5;
-let mode        = 'en';   // 'en' or 'da' — no AUTO
+// ══════════════════════════════════════════════════════════
+//  State
+// ══════════════════════════════════════════════════════════
+const MAX_LINES  = 8;    // more lines visible before disappearing
+const STORAGE_KEY = 'assembly-minutes-v1';
+
+let mode        = 'en';
 let isRunning   = false;
 let micStream   = null;
 let rec         = null;
@@ -242,28 +304,51 @@ const xQueue    = [];
 const linesEN   = [];
 const linesDA   = [];
 
-// ── DOM ───────────────────────────────────────────────────
-const $        = id => document.getElementById(id);
-const scrollEN = $('scroll-en'), scrollDA = $('scroll-da');
-const intEN    = $('interim-en'), intDA   = $('interim-da');
-const micDot   = $('mic-dot'),   micLbl  = $('mic-label');
-const infoEl   = $('info'),      dbgEl   = $('debug');
-const btnStart = $('btn-start'), btnStop = $('btn-stop');
-const permOvr  = $('perm-overlay'), permErr = $('perm-err');
-const btnGrant = $('btn-grant');
+// Minutes: array of {time, en, da}
+let minutes = [];
 
-function log(m)           { console.log('[subs]',m); dbgEl.textContent = m; }
+// ── DOM ───────────────────────────────────────────────────
+const $         = id => document.getElementById(id);
+const scrollEN  = $('scroll-en'),  scrollDA  = $('scroll-da');
+const intEN     = $('interim-en'), intDA     = $('interim-da');
+const micDot    = $('mic-dot'),    micLbl    = $('mic-label');
+const infoEl    = $('info'),       dbgEl     = $('debug');
+const btnStart  = $('btn-start'),  btnStop   = $('btn-stop');
+const permOvr   = $('perm-overlay'), permErr = $('perm-err');
+const btnGrant  = $('btn-grant');
+const minPanel  = $('minutes-panel');
+const minBody   = $('minutes-body');
+const minEmpty  = $('minutes-empty');
+
+function log(m)           { console.log('[subs]',m); dbgEl.textContent=m; }
 function setMic(cls, lbl) { micDot.className=cls; micLbl.textContent=lbl; infoEl.textContent=lbl; }
 
-// ── Star Wars scroll ──────────────────────────────────────
+// ══════════════════════════════════════════════════════════
+//  localStorage persistence
+// ══════════════════════════════════════════════════════════
+function saveMinutes() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(minutes)); } catch(e) {}
+}
+
+function loadMinutes() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) { minutes = JSON.parse(raw); renderAllMinutes(); }
+  } catch(e) { minutes = []; }
+}
+
+// ══════════════════════════════════════════════════════════
+//  Star Wars scroll
+// ══════════════════════════════════════════════════════════
 function addLine(col, text, shimmer) {
   const lines  = col==='en' ? linesEN  : linesDA;
   const scroll = col==='en' ? scrollEN : scrollDA;
   const intEl  = col==='en' ? intEN    : intDA;
 
+  // Age existing lines up one step
   lines.forEach((el,i) => {
-    el.classList.remove('age0','age1','age2','age3');
-    el.classList.add('age' + Math.min(i+1, 3));
+    el.classList.remove('age0','age1','age2','age3','age4','age5');
+    el.classList.add('age' + Math.min(i+1, 5));
   });
 
   const div = document.createElement('div');
@@ -282,7 +367,9 @@ function updateNewest(col, text) {
   lines[0].classList.remove('shimmer-text');
 }
 
-// ── Translation ───────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
+//  Translation
+// ══════════════════════════════════════════════════════════
 async function translate(text, from, to) {
   const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${from}|${to}`;
   const go  = () => fetch(url).then(r=>r.json()).then(d=>{
@@ -306,15 +393,26 @@ async function drainQueue() {
   if (!xQueue.length) { xlating=false; if (isRunning) setMic('on','Listening…'); return; }
   xlating = true;
   const {text, lang} = xQueue.shift();
-  const isEN  = lang==='en';
-  const src   = isEN ? 'en' : 'da';
-  const dst   = isEN ? 'da' : 'en';
+  const isEN = lang==='en';
+  const src  = isEN ? 'en' : 'da';
+  const dst  = isEN ? 'da' : 'en';
+
   addLine(src, text, false);
   addLine(dst, 'translating…', true);
   setMic('busy','Translating…');
+
   try {
     const result = await translate(text, isEN?'en':'da', isEN?'da':'en');
     updateNewest(dst, result);
+
+    // Record to minutes
+    const entry = {
+      time: new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}),
+      en: isEN ? text : result,
+      da: isEN ? result : text
+    };
+    addMinuteEntry(entry);
+
   } catch(e) {
     updateNewest(dst, '—');
     log('Translate err: '+e.message);
@@ -322,18 +420,127 @@ async function drainQueue() {
   drainQueue();
 }
 
-// ── Mode toggle ───────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
+//  Minutes panel
+// ══════════════════════════════════════════════════════════
+function addMinuteEntry(entry) {
+  minutes.push(entry);
+  saveMinutes();
+
+  // Hide empty state
+  if (minEmpty) minEmpty.style.display = 'none';
+
+  const row = document.createElement('div');
+  row.className = 'minute-entry';
+  row.innerHTML = `
+    <div class="minute-time">${entry.time}</div>
+    <div class="minute-en">${escHtml(entry.en)}</div>
+    <div class="minute-da">${escHtml(entry.da)}</div>
+  `;
+  minBody.appendChild(row);
+  // Auto-scroll to bottom
+  minBody.scrollTop = minBody.scrollHeight;
+}
+
+function renderAllMinutes() {
+  // Clear existing rows (keep empty message)
+  Array.from(minBody.children).forEach(el => {
+    if (el.id !== 'minutes-empty') el.remove();
+  });
+  if (minutes.length === 0) {
+    if (minEmpty) minEmpty.style.display = '';
+    return;
+  }
+  if (minEmpty) minEmpty.style.display = 'none';
+  minutes.forEach(e => {
+    const row = document.createElement('div');
+    row.className = 'minute-entry';
+    row.innerHTML = `
+      <div class="minute-time">${e.time}</div>
+      <div class="minute-en">${escHtml(e.en)}</div>
+      <div class="minute-da">${escHtml(e.da)}</div>
+    `;
+    minBody.appendChild(row);
+  });
+  minBody.scrollTop = minBody.scrollHeight;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function downloadMinutes() {
+  if (!minutes.length) { alert('No minutes to download yet.'); return; }
+  const date = new Date().toLocaleDateString('en-GB');
+
+  let txt = `ASSEMBLY MINUTES\n`;
+  txt +=    `Date: ${date}\n`;
+  txt +=    `Generated by Assembly Live Subtitles\n`;
+  txt +=    `${'─'.repeat(60)}\n\n`;
+  txt +=    `${'TIME'.padEnd(8)}${'ENGLISH'.padEnd(50)}DANISH\n`;
+  txt +=    `${'─'.repeat(60)}\n`;
+
+  minutes.forEach(e => {
+    // Wrap long lines
+    const enLines = wrapText(e.en, 46);
+    const daLines = wrapText(e.da, 46);
+    const maxLines = Math.max(enLines.length, daLines.length);
+    for (let i=0; i<maxLines; i++) {
+      const time = i===0 ? e.time : '';
+      const en   = enLines[i] || '';
+      const da   = daLines[i] || '';
+      txt += `${time.padEnd(8)}${en.padEnd(50)}${da}\n`;
+    }
+    txt += '\n';
+  });
+
+  const blob = new Blob([txt], {type:'text/plain;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `assembly-minutes-${date.replace(/\//g,'-')}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function wrapText(text, width) {
+  const words = text.split(' ');
+  const lines = [];
+  let current = '';
+  words.forEach(w => {
+    if ((current + ' ' + w).trim().length <= width) {
+      current = (current + ' ' + w).trim();
+    } else {
+      if (current) lines.push(current);
+      current = w;
+    }
+  });
+  if (current) lines.push(current);
+  return lines.length ? lines : [''];
+}
+
+$('btn-minutes').addEventListener('click', () => minPanel.classList.toggle('show'));
+$('btn-minutes-close').addEventListener('click', () => minPanel.classList.remove('show'));
+$('btn-download').addEventListener('click', downloadMinutes);
+$('btn-minutes-clear').addEventListener('click', () => {
+  if (!confirm('Clear all minutes? This cannot be undone.')) return;
+  minutes = [];
+  saveMinutes();
+  renderAllMinutes();
+});
+
+// ══════════════════════════════════════════════════════════
+//  Recognizer
+// ══════════════════════════════════════════════════════════
 function setMode(m) {
   mode = m;
   $('ltab-en').className = 'ltab' + (m==='en' ? ' active-en' : '');
   $('ltab-da').className = 'ltab' + (m==='da' ? ' active-da' : '');
   if (!isRunning) return;
-  // Swap recognizer language
   recLang = m==='en' ? 'en-US' : 'da-DK';
   restartRec();
 }
 
-// ── Recognizer ────────────────────────────────────────────
 function killRec() {
   if (!rec) return;
   rec.onstart=rec.onresult=rec.onerror=rec.onend=null;
@@ -341,10 +548,7 @@ function killRec() {
   rec = null;
 }
 
-function restartRec() {
-  killRec();
-  startRec();
-}
+function restartRec() { killRec(); startRec(); }
 
 function startRec() {
   if (!isRunning) return;
@@ -357,10 +561,7 @@ function startRec() {
   rec.interimResults  = true;
   rec.maxAlternatives = 1;
 
-  rec.onstart = () => {
-    log('REC: ' + recLang);
-    if (!xlating) setMic('on','Listening…');
-  };
+  rec.onstart = () => { log('REC: '+recLang); if (!xlating) setMic('on','Listening…'); };
 
   rec.onresult = (e) => {
     let interim='', finals='';
@@ -393,18 +594,17 @@ function startRec() {
   };
 
   rec.onend = () => {
-    // continuous=true shouldn't fire onend normally.
-    // If it does (OS interrupt, tab switch) restart same object.
     if (isRunning && rec) {
       setTimeout(()=>{ try{ rec && rec.start(); }catch(ex){} }, 250);
     }
   };
 
-  try { rec.start(); }
-  catch(e) { log('rec.start err: '+e.message); }
+  try { rec.start(); } catch(e) { log('rec.start err: '+e.message); }
 }
 
-// ── Start / stop ──────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
+//  Start / stop
+// ══════════════════════════════════════════════════════════
 function doStart() {
   isRunning = true;
   btnStart.disabled = true;
@@ -423,7 +623,9 @@ function stopAll() {
   setMic('off','Stopped');
 }
 
-// ── Permission ────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
+//  Permission
+// ══════════════════════════════════════════════════════════
 btnGrant.addEventListener('click', async () => {
   btnGrant.textContent='Requesting…'; btnGrant.disabled=true;
   permErr.style.display='none';
@@ -461,6 +663,7 @@ function startAll() {
 
 btnStart.addEventListener('click', startAll);
 btnStop.addEventListener ('click', stopAll);
+
 $('btn-clear').addEventListener('click', ()=>{
   linesEN.forEach(el=>el.remove()); linesEN.length=0;
   linesDA.forEach(el=>el.remove()); linesDA.length=0;
@@ -469,8 +672,10 @@ $('btn-clear').addEventListener('click', ()=>{
 });
 
 document.addEventListener('keydown', e=>{
-  if (e.key===' '&&e.target===document.body){e.preventDefault(); isRunning?stopAll():startAll();}
-  if (e.key==='Escape') stopAll();
+  if (e.target.tagName==='BUTTON') return;
+  if (e.key===' '){e.preventDefault(); isRunning?stopAll():startAll();}
+  if (e.key==='Escape') { stopAll(); minPanel.classList.remove('show'); }
+  if (e.key==='m'||e.key==='M') minPanel.classList.toggle('show');
   if (e.key==='F11'){e.preventDefault();toggleFS();}
 });
 
@@ -479,8 +684,12 @@ function toggleFS(){
   else document.exitFullscreen();
 }
 
-// ── Init ──────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
+//  Init
+// ══════════════════════════════════════════════════════════
 setMode('en');
+loadMinutes(); // restore from localStorage on page load
+
 window.onload = () => {
   const hasSR   = !!(window.SpeechRecognition||window.webkitSpeechRecognition);
   const isHTTPS = location.protocol==='https:'||location.hostname==='localhost';

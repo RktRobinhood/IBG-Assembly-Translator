@@ -6,32 +6,65 @@
 <title>Assembly Live Subtitles</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+/* CSS variables — all tweakable settings live here */
+:root {
+  --bg:            #080810;
+  --bg-alpha:      1;          /* 0 = fully transparent, 1 = solid */
+  --ui-alpha:      1;          /* controls bar / topbar opacity */
+  --font-size-0:   36px;
+  --font-size-1:   30px;
+  --font-size-2:   25px;
+  --font-size-3:   20px;
+  --font-size-4:   16px;
+  --font-size-5:   13px;
+  --fade-speed:    1.2s;       /* how long color fade takes */
+  --col-height-pct:100%;       /* percent of stage each column uses */
+  --text-shadow:   none;
+}
+
 body {
-  background:#080810; color:#fff;
+  background: rgba(8,8,16, var(--bg-alpha));
+  color:#fff;
   font-family:'Segoe UI',system-ui,sans-serif;
   height:100dvh; display:flex; flex-direction:column; overflow:hidden;
+  transition: background .3s;
 }
+
+/* transparent mode: body bg goes clear, text gets shadow for readability */
+body.transparent {
+  --bg-alpha: 0;
+  --ui-alpha: 0.7;
+  --text-shadow: 0 1px 8px rgba(0,0,0,.9), 0 0 3px rgba(0,0,0,1);
+}
+body.transparent .col::after { opacity:0; }
+body.transparent .divider    { opacity:.2; }
 
 /* ── topbar ── */
 #topbar {
   display:flex; align-items:center; justify-content:space-between;
-  padding:10px 16px; background:rgba(255,255,255,0.03);
-  border-bottom:1px solid rgba(255,255,255,0.07); flex-shrink:0; gap:8px;
+  padding:10px 16px;
+  background: rgba(255,255,255,calc(0.04 * var(--ui-alpha)));
+  border-bottom: 1px solid rgba(255,255,255,calc(0.08 * var(--ui-alpha)));
+  flex-shrink:0; gap:8px;
+  transition: background .3s;
 }
 #logo {
   font-size:11px; font-weight:700; letter-spacing:.07em;
-  color:rgba(255,255,255,.22); text-transform:uppercase;
+  color:rgba(255,255,255,.3); text-transform:uppercase;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  text-shadow: var(--text-shadow);
 }
 #lang-toggle { display:flex; gap:6px; align-items:center; flex-shrink:0; }
 .ltab {
   font-size:11px; font-weight:700; letter-spacing:.06em;
-  padding:5px 14px; border-radius:20px; border:1.5px solid rgba(255,255,255,.12);
-  color:rgba(255,255,255,.3); cursor:pointer; transition:all .2s; background:none;
+  padding:5px 14px; border-radius:20px; border:1.5px solid rgba(255,255,255,.15);
+  color:rgba(255,255,255,.4); cursor:pointer; transition:all .2s; background:rgba(0,0,0,.2);
   min-height:34px; display:flex; align-items:center;
+  text-shadow: var(--text-shadow);
 }
-.ltab.active-en { border-color:#60a5fa; color:#93c5fd; background:rgba(96,165,250,.12); }
-.ltab.active-da { border-color:#f87171; color:#fca5a5; background:rgba(248,113,113,.12); }
+.ltab.active-en { border-color:#60a5fa; color:#93c5fd; background:rgba(96,165,250,.18); }
+.ltab.active-da { border-color:#f87171; color:#fca5a5; background:rgba(248,113,113,.18); }
 #dot-wrap { display:flex; align-items:center; gap:6px; flex-shrink:0; }
 #mic-dot { width:8px; height:8px; border-radius:50%; background:#374151; transition:background .3s; }
 #mic-dot.on   { background:#10b981; animation:pulse 2s infinite; }
@@ -41,7 +74,7 @@ body {
   0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,.5);}
   50%    {box-shadow:0 0 0 7px rgba(16,185,129,0);}
 }
-#mic-label { font-size:11px; color:rgba(255,255,255,.28); white-space:nowrap; }
+#mic-label { font-size:11px; color:rgba(255,255,255,.3); white-space:nowrap; text-shadow:var(--text-shadow); }
 
 /* ── stage ── */
 #stage {
@@ -53,16 +86,17 @@ body {
   #stage { grid-template-columns:1fr; grid-template-rows:1fr 1px 1fr; }
   .divider { width:100% !important; height:1px !important; }
 }
-.divider { background:rgba(255,255,255,.07); }
+.divider { background:rgba(255,255,255,.07); transition:opacity .3s; }
 .col { display:flex; flex-direction:column; overflow:hidden; position:relative; }
 .col::after {
   content:''; position:absolute; top:0; left:0; right:0; height:80px;
-  background:linear-gradient(to bottom,#080810,transparent);
-  pointer-events:none; z-index:5;
+  background:linear-gradient(to bottom, var(--bg), transparent);
+  pointer-events:none; z-index:5; transition:opacity .3s;
 }
 .col-header {
   padding:10px 18px 7px; font-size:11px; font-weight:700;
   letter-spacing:.12em; text-transform:uppercase; flex-shrink:0; z-index:6; position:relative;
+  text-shadow: var(--text-shadow);
 }
 #col-en .col-header { color:#60a5fa; border-bottom:1px solid rgba(96,165,250,.12); }
 #col-da .col-header { color:#f87171; border-bottom:1px solid rgba(248,113,113,.12); }
@@ -72,51 +106,45 @@ body {
   justify-content:flex-end; padding:0 18px 18px; gap:0;
 }
 
-/* ── Star Wars lines — slower transitions ── */
+/* ── Star Wars lines ── */
 .line-block {
   width:100%; text-align:center; flex-shrink:0; word-break:break-word;
   animation:slideUp .4s ease-out forwards;
-  /* slower transition so slow readers can follow */
-  transition: font-size .8s ease, color 1.2s ease, padding .8s ease;
+  transition: font-size .8s ease, color var(--fade-speed) ease, padding .8s ease;
+  text-shadow: var(--text-shadow);
 }
 @keyframes slideUp {
   from{opacity:0;transform:translateY(14px);}
   to  {opacity:1;transform:translateY(0);}
 }
 
-/* age0 = newest/biggest; gentle size steps so text lingers large */
-.line-block.age0 { font-size:clamp(18px,2.4vw,36px); font-weight:700; color:#ffffff;                line-height:1.3; padding:6px 0; }
-.line-block.age1 { font-size:clamp(16px,2.1vw,30px); font-weight:600; color:rgba(255,255,255,.60); line-height:1.3; padding:5px 0; }
-.line-block.age2 { font-size:clamp(14px,1.8vw,25px); font-weight:400; color:rgba(255,255,255,.32); line-height:1.35; padding:4px 0; }
-.line-block.age3 { font-size:clamp(12px,1.5vw,20px); font-weight:400; color:rgba(255,255,255,.16); line-height:1.4; padding:3px 0; }
-.line-block.age4 { font-size:clamp(10px,1.2vw,16px); font-weight:400; color:rgba(255,255,255,.07); line-height:1.4; padding:2px 0; }
-.line-block.age5 { font-size:clamp(8px, 1.0vw,13px); font-weight:400; color:rgba(255,255,255,.03); line-height:1.4; padding:1px 0; }
-
-@media (max-width:600px) {
-  .line-block.age0 { font-size:clamp(16px,4.8vw,28px); padding:5px 0; }
-  .line-block.age1 { font-size:clamp(14px,4.0vw,23px); padding:4px 0; }
-  .line-block.age2 { font-size:clamp(12px,3.3vw,19px); padding:3px 0; }
-  .line-block.age3 { font-size:clamp(10px,2.7vw,15px); padding:2px 0; }
-  .line-block.age4 { font-size:clamp(8px, 2.2vw,12px); padding:1px 0; }
-  .line-block.age5 { font-size:clamp(7px, 1.8vw,10px); padding:1px 0; }
-}
+.line-block.age0 { font-size:var(--font-size-0); font-weight:700; color:#ffffff;                line-height:1.3;  padding:6px 0; }
+.line-block.age1 { font-size:var(--font-size-1); font-weight:600; color:rgba(255,255,255,.60); line-height:1.3;  padding:5px 0; }
+.line-block.age2 { font-size:var(--font-size-2); font-weight:400; color:rgba(255,255,255,.32); line-height:1.35; padding:4px 0; }
+.line-block.age3 { font-size:var(--font-size-3); font-weight:400; color:rgba(255,255,255,.16); line-height:1.4;  padding:3px 0; }
+.line-block.age4 { font-size:var(--font-size-4); font-weight:400; color:rgba(255,255,255,.07); line-height:1.4;  padding:2px 0; }
+.line-block.age5 { font-size:var(--font-size-5); font-weight:400; color:rgba(255,255,255,.03); line-height:1.4;  padding:1px 0; }
 
 .interim-line {
   text-align:center; font-style:italic; flex-shrink:0;
   font-size:clamp(10px,1.2vw,16px); padding:3px 0 0; min-height:1.4em;
+  text-shadow: var(--text-shadow);
 }
 @media (max-width:600px) { .interim-line { font-size:clamp(9px,2.8vw,13px); } }
-#interim-en { color:rgba(147,197,253,.4); }
-#interim-da { color:rgba(252,165,165,.4); }
+#interim-en { color:rgba(147,197,253,.45); }
+#interim-da { color:rgba(252,165,165,.45); }
 
 @keyframes shimmer{0%,100%{opacity:.2}50%{opacity:.5}}
-.shimmer-text{animation:shimmer 1s infinite;color:rgba(255,255,255,.3)!important;font-style:italic;}
+.shimmer-text { animation:shimmer 1s infinite; color:rgba(255,255,255,.3)!important; font-style:italic; }
 
 /* ── controls ── */
 #controls {
   padding:10px 16px; display:flex; align-items:center;
-  justify-content:center; gap:8px; background:rgba(255,255,255,.02);
-  border-top:1px solid rgba(255,255,255,.06); flex-shrink:0; flex-wrap:wrap;
+  justify-content:center; gap:8px;
+  background: rgba(0,0,0,calc(0.3 * var(--ui-alpha)));
+  border-top: 1px solid rgba(255,255,255,calc(0.06 * var(--ui-alpha)));
+  flex-shrink:0; flex-wrap:wrap;
+  transition: background .3s, border-color .3s;
 }
 button {
   border:none; border-radius:8px; cursor:pointer;
@@ -124,22 +152,25 @@ button {
   min-height:42px;
 }
 button:active{transform:scale(.96);}
-#btn-start  { background:#10b981; color:#fff; min-width:100px; }
+#btn-start  { background:rgba(16,185,129,.9);  color:#fff; min-width:100px; }
 #btn-start:hover:not(:disabled){ background:#059669; }
-#btn-start:disabled{ background:#1e293b; color:#4b5563; cursor:not-allowed; }
-#btn-stop   { background:#ef4444; color:#fff; }
+#btn-start:disabled{ background:rgba(30,41,59,.7); color:#4b5563; cursor:not-allowed; }
+#btn-stop   { background:rgba(239,68,68,.9); color:#fff; }
 #btn-stop:hover:not(:disabled){ background:#dc2626; }
-#btn-stop:disabled{ background:#1e293b; color:#4b5563; cursor:not-allowed; }
-#btn-clear  { background:rgba(255,255,255,.07); color:rgba(255,255,255,.45); }
-#btn-clear:hover{ background:rgba(255,255,255,.11); }
-#btn-minutes{ background:rgba(99,102,241,.18); color:#a5b4fc; border:1px solid rgba(99,102,241,.3); }
-#btn-minutes:hover{ background:rgba(99,102,241,.28); }
+#btn-stop:disabled{ background:rgba(30,41,59,.7); color:#4b5563; cursor:not-allowed; }
+#btn-clear  { background:rgba(255,255,255,.1); color:rgba(255,255,255,.5); }
+#btn-clear:hover{ background:rgba(255,255,255,.16); }
+#btn-minutes{ background:rgba(99,102,241,.2); color:#a5b4fc; border:1px solid rgba(99,102,241,.3); }
+#btn-minutes:hover{ background:rgba(99,102,241,.32); }
+#btn-settings { background:rgba(255,255,255,.08); color:rgba(255,255,255,.45); font-size:16px; padding:10px 14px; }
+#btn-settings:hover{ background:rgba(255,255,255,.15); }
 #info { font-size:11px; color:rgba(255,255,255,.18); text-align:center; }
 @media (max-width:600px){ #info{ display:none; } }
 
 #fs-btn {
   position:fixed; bottom:60px; right:12px; font-size:11px;
   color:rgba(255,255,255,.13); cursor:pointer; background:none; border:none; padding:4px;
+  text-shadow:var(--text-shadow);
 }
 @media (max-width:600px){ #fs-btn{ display:none; } }
 
@@ -147,37 +178,33 @@ button:active{transform:scale(.96);}
   position:fixed; bottom:56px; left:0; right:0; text-align:center;
   font-size:9px; color:rgba(255,255,255,.18); pointer-events:none;
   padding:2px 8px; font-family:monospace; z-index:10;
+  text-shadow:var(--text-shadow);
 }
 
-/* ── Minutes panel ── */
-#minutes-panel {
+/* ── Panel shared styles ── */
+.panel {
   display:none; position:fixed; inset:0; z-index:400;
-  background:rgba(8,8,16,.96); flex-direction:column;
-  overflow:hidden;
+  background:rgba(8,8,16,.96); flex-direction:column; overflow:hidden;
 }
-#minutes-panel.show { display:flex; }
-#minutes-header {
+.panel.show { display:flex; }
+.panel-header {
   display:flex; align-items:center; justify-content:space-between;
   padding:14px 20px; border-bottom:1px solid rgba(255,255,255,.08); flex-shrink:0;
 }
-#minutes-header h2 { font-size:16px; font-weight:700; color:rgba(255,255,255,.8); }
-#minutes-header-btns { display:flex; gap:8px; }
-#btn-download {
-  background:#10b981; color:#fff; font-size:13px; font-weight:600;
-  padding:7px 16px; border-radius:8px; border:none; cursor:pointer;
+.panel-header h2 { font-size:16px; font-weight:700; color:rgba(255,255,255,.8); }
+.panel-header-btns { display:flex; gap:8px; flex-wrap:wrap; }
+.ph-btn {
+  font-size:13px; font-weight:600; padding:7px 14px; border-radius:8px; cursor:pointer;
+  border:none; min-height:36px;
 }
-#btn-download:hover{ background:#059669; }
-#btn-minutes-clear {
-  background:rgba(239,68,68,.15); color:#fca5a5; font-size:13px; font-weight:600;
-  padding:7px 16px; border-radius:8px; border:1px solid rgba(239,68,68,.2); cursor:pointer;
-}
-#btn-minutes-clear:hover{ background:rgba(239,68,68,.25); }
-#btn-minutes-close {
-  background:rgba(255,255,255,.07); color:rgba(255,255,255,.5); font-size:13px;
-  padding:7px 14px; border-radius:8px; border:none; cursor:pointer;
-}
-#btn-minutes-close:hover{ background:rgba(255,255,255,.12); }
+.ph-btn.green  { background:#10b981; color:#fff; }
+.ph-btn.green:hover { background:#059669; }
+.ph-btn.red    { background:rgba(239,68,68,.15); color:#fca5a5; border:1px solid rgba(239,68,68,.2); }
+.ph-btn.red:hover   { background:rgba(239,68,68,.25); }
+.ph-btn.grey   { background:rgba(255,255,255,.07); color:rgba(255,255,255,.5); }
+.ph-btn.grey:hover  { background:rgba(255,255,255,.12); }
 
+/* ── Minutes panel ── */
 #minutes-body {
   flex:1; overflow-y:auto; padding:16px 20px;
   display:flex; flex-direction:column; gap:8px;
@@ -185,7 +212,6 @@ button:active{transform:scale(.96);}
 #minutes-body::-webkit-scrollbar { width:4px; }
 #minutes-body::-webkit-scrollbar-track { background:transparent; }
 #minutes-body::-webkit-scrollbar-thumb { background:rgba(255,255,255,.12); border-radius:2px; }
-
 .minute-entry {
   display:grid; grid-template-columns:56px 1fr 1fr;
   gap:10px; align-items:start; padding:8px 0;
@@ -198,45 +224,71 @@ button:active{transform:scale(.96);}
 .minute-time { font-size:11px; color:rgba(255,255,255,.25); padding-top:2px; font-family:monospace; }
 .minute-en   { font-size:13px; color:rgba(147,197,253,.85); line-height:1.5; }
 .minute-da   { font-size:13px; color:rgba(252,165,165,.85); line-height:1.5; }
-#minutes-empty {
-  text-align:center; padding:60px 0; color:rgba(255,255,255,.2); font-size:14px;
+#minutes-empty { text-align:center; padding:60px 0; color:rgba(255,255,255,.2); font-size:14px; }
+
+/* ── Settings panel ── */
+#settings-body {
+  flex:1; overflow-y:auto; padding:20px;
+}
+#settings-body::-webkit-scrollbar { width:4px; }
+#settings-body::-webkit-scrollbar-thumb { background:rgba(255,255,255,.12); border-radius:2px; }
+
+.settings-section {
+  margin-bottom:28px;
+}
+.settings-section h3 {
+  font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  color:rgba(255,255,255,.3); margin-bottom:14px;
+}
+.setting-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 0; border-bottom:1px solid rgba(255,255,255,.04); gap:16px;
+}
+.setting-label { font-size:14px; color:rgba(255,255,255,.7); flex:1; }
+.setting-sub   { font-size:11px; color:rgba(255,255,255,.3); margin-top:2px; }
+.setting-control { display:flex; align-items:center; gap:10px; flex-shrink:0; }
+.setting-value { font-size:13px; color:rgba(255,255,255,.5); min-width:40px; text-align:right; font-family:monospace; }
+
+input[type=range] {
+  -webkit-appearance:none; appearance:none;
+  width:140px; height:4px; border-radius:2px;
+  background:rgba(255,255,255,.15); outline:none; cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance:none; appearance:none;
+  width:18px; height:18px; border-radius:50%;
+  background:#a78bfa; cursor:pointer; border:2px solid rgba(255,255,255,.2);
+}
+input[type=range]::-moz-range-thumb {
+  width:18px; height:18px; border-radius:50%;
+  background:#a78bfa; cursor:pointer; border:2px solid rgba(255,255,255,.2);
+}
+@media (max-width:600px) {
+  input[type=range] { width:110px; }
+  .setting-row { flex-wrap:wrap; }
 }
 
-/* ── Summary section ── */
-#summary-section {
-  border-top:1px solid rgba(255,255,255,.08);
-  padding:16px 20px; flex-shrink:0; background:rgba(255,255,255,.02);
+/* Toggle switch */
+.toggle { position:relative; width:44px; height:24px; flex-shrink:0; }
+.toggle input { opacity:0; width:0; height:0; }
+.toggle-track {
+  position:absolute; inset:0; border-radius:12px;
+  background:rgba(255,255,255,.15); cursor:pointer; transition:.3s;
 }
-#summary-section h3 {
-  font-size:12px; font-weight:700; color:rgba(255,255,255,.35);
-  letter-spacing:.08em; text-transform:uppercase; margin-bottom:10px;
+.toggle input:checked + .toggle-track { background:#a78bfa; }
+.toggle-track::after {
+  content:''; position:absolute; width:18px; height:18px; border-radius:50%;
+  background:#fff; top:3px; left:3px; transition:.3s;
 }
-#btn-summarise {
-  background:rgba(139,92,246,.2); color:#c4b5fd;
-  border:1px solid rgba(139,92,246,.3); font-size:13px; font-weight:600;
-  padding:8px 18px; border-radius:8px; cursor:pointer; transition:all .2s; min-height:36px;
+.toggle input:checked + .toggle-track::after { transform:translateX(20px); }
+
+.settings-reset {
+  margin-top:8px; background:rgba(239,68,68,.12); color:#fca5a5;
+  border:1px solid rgba(239,68,68,.2); font-size:13px; font-weight:600;
+  padding:9px 20px; border-radius:8px; cursor:pointer; width:100%;
+  min-height:40px;
 }
-#btn-summarise:hover:not(:disabled) { background:rgba(139,92,246,.35); }
-#btn-summarise:disabled { opacity:.4; cursor:not-allowed; }
-#summary-content { display:none; margin-top:14px; }
-#summary-content.show { display:block; }
-.summary-lang { margin-bottom:14px; }
-.summary-lang-label {
-  font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; margin-bottom:6px;
-}
-.summary-lang-label.en { color:rgba(147,197,253,.6); }
-.summary-lang-label.da { color:rgba(252,165,165,.6); }
-.summary-points { list-style:none; display:flex; flex-direction:column; gap:5px; }
-.summary-points li {
-  font-size:13px; line-height:1.55; padding:7px 11px;
-  background:rgba(255,255,255,.03); border-radius:6px; color:rgba(255,255,255,.75);
-}
-.summary-points li.en { border-left:2px solid rgba(96,165,250,.4); }
-.summary-points li.da { border-left:2px solid rgba(248,113,113,.4); }
-#summary-spinner { display:none; text-align:center; padding:14px 0; font-size:13px; color:rgba(255,255,255,.3); font-style:italic; }
-#summary-spinner.show { display:block; }
-#summary-err { display:none; color:#fca5a5; font-size:12px; margin-top:8px; }
-#summary-err.show { display:block; }
+.settings-reset:hover { background:rgba(239,68,68,.22); }
 
 /* ── permission overlay ── */
 #perm-overlay {
@@ -269,36 +321,109 @@ button:active{transform:scale(.96);}
 </div>
 
 <!-- Minutes panel -->
-<div id="minutes-panel">
-  <div id="minutes-header">
+<div class="panel" id="minutes-panel">
+  <div class="panel-header">
     <h2>📋 Assembly Minutes</h2>
-    <div id="minutes-header-btns">
-      <button id="btn-download">⬇ Download .txt</button>
-      <button id="btn-minutes-clear">🗑 Clear</button>
-      <button id="btn-minutes-close">✕ Close</button>
+    <div class="panel-header-btns">
+      <button class="ph-btn green" id="btn-download">⬇ Download .txt</button>
+      <button class="ph-btn red"   id="btn-minutes-clear">🗑 Clear</button>
+      <button class="ph-btn grey"  id="btn-minutes-close">✕ Close</button>
     </div>
   </div>
   <div id="minutes-body">
     <div id="minutes-empty">No minutes yet — start the session and speak.</div>
   </div>
-  <div id="summary-section">
-    <h3>✨ AI Secretary — Key Points</h3>
-    <button id="btn-summarise">Summarise assembly</button>
-    <div id="summary-spinner">Thinking…</div>
-    <div id="summary-err"></div>
-    <div id="summary-content">
-      <div class="summary-lang">
-        <div class="summary-lang-label en">🇬🇧 English key points</div>
-        <ul class="summary-points" id="summary-en"></ul>
+</div>
+
+<!-- Settings panel -->
+<div class="panel" id="settings-panel">
+  <div class="panel-header">
+    <h2>⚙️ Settings</h2>
+    <div class="panel-header-btns">
+      <button class="ph-btn grey" id="btn-settings-close">✕ Close</button>
+    </div>
+  </div>
+  <div id="settings-body">
+
+    <div class="settings-section">
+      <h3>Display</h3>
+
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">Transparent background</div>
+          <div class="setting-sub">Overlay on top of slides or a projector</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="set-transparent">
+          <div class="toggle-track"></div>
+        </label>
       </div>
-      <div class="summary-lang">
-        <div class="summary-lang-label da">🇩🇰 Danske nøglepunkter</div>
-        <ul class="summary-points" id="summary-da"></ul>
+
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">Newest text size</div>
+          <div class="setting-sub">Size of the most recent line</div>
+        </div>
+        <div class="setting-control">
+          <span class="setting-value" id="val-size0">36px</span>
+          <input type="range" id="set-size0" min="16" max="72" step="2" value="36">
+        </div>
+      </div>
+
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">Size step between lines</div>
+          <div class="setting-sub">How quickly text shrinks as it ages (px per step)</div>
+        </div>
+        <div class="setting-control">
+          <span class="setting-value" id="val-step">6px</span>
+          <input type="range" id="set-step" min="2" max="16" step="1" value="6">
+        </div>
+      </div>
+
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">Fade speed</div>
+          <div class="setting-sub">How slowly older lines fade in colour</div>
+        </div>
+        <div class="setting-control">
+          <span class="setting-value" id="val-fade">1.2s</span>
+          <input type="range" id="set-fade" min="0.2" max="4" step="0.2" value="1.2">
+        </div>
+      </div>
+
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">Max lines visible</div>
+          <div class="setting-sub">Lines kept on screen before disappearing</div>
+        </div>
+        <div class="setting-control">
+          <span class="setting-value" id="val-lines">8</span>
+          <input type="range" id="set-lines" min="3" max="14" step="1" value="8">
+        </div>
       </div>
     </div>
+
+    <div class="settings-section">
+      <h3>Columns</h3>
+
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">Column height (mobile)</div>
+          <div class="setting-sub">Percentage of screen each column uses when stacked</div>
+        </div>
+        <div class="setting-control">
+          <span class="setting-value" id="val-height">50%</span>
+          <input type="range" id="set-height" min="20" max="80" step="5" value="50">
+        </div>
+      </div>
+    </div>
+
+    <button class="settings-reset" id="btn-reset-settings">↺ Reset to defaults</button>
   </div>
 </div>
 
+<!-- Main UI -->
 <div id="topbar">
   <div id="logo">🏫 Assembly Subtitles</div>
   <div id="lang-toggle">
@@ -332,7 +457,8 @@ button:active{transform:scale(.96);}
   <button id="btn-stop" disabled>⏹ Stop</button>
   <button id="btn-clear">✕ Clear</button>
   <button id="btn-minutes">📋 Minutes</button>
-  <div id="info">Spacebar to toggle · M for minutes</div>
+  <button id="btn-settings">⚙</button>
+  <div id="info">Space = start/stop · M = minutes · S = settings</div>
 </div>
 
 <div id="debug"></div>
@@ -340,64 +466,159 @@ button:active{transform:scale(.96);}
 
 <script>
 // ══════════════════════════════════════════════════════════
-//  State
+//  Constants & State
 // ══════════════════════════════════════════════════════════
-const MAX_LINES  = 8;    // more lines visible before disappearing
-const STORAGE_KEY = 'assembly-minutes-v1';
+const STORAGE_KEY  = 'assembly-v2';
 
-let mode        = 'en';
-let isRunning   = false;
-let micStream   = null;
-let rec         = null;
-let recLang     = 'en-US';
-let xlating     = false;
-let lastQueued  = '';
-const xQueue    = [];
-const linesEN   = [];
-const linesDA   = [];
+const DEFAULTS = {
+  transparent: false,
+  size0:  36,    // newest line px
+  step:   6,     // px reduction per age step
+  fade:   1.2,   // seconds
+  lines:  8,     // max lines visible
+  height: 50,    // mobile column height %
+};
 
-// Minutes: array of {time, en, da}
-let minutes = [];
-let summary = null; // {en: [...], da: [...]}
+let cfg = {...DEFAULTS};
+let maxLines = cfg.lines;
+
+let mode       = 'en';
+let isRunning  = false;
+let micStream  = null;
+let rec        = null;
+let recLang    = 'en-US';
+let xlating    = false;
+let lastQueued = '';
+const xQueue   = [];
+const linesEN  = [];
+const linesDA  = [];
+let minutes    = [];
 
 // ── DOM ───────────────────────────────────────────────────
-const $         = id => document.getElementById(id);
-const scrollEN  = $('scroll-en'),  scrollDA  = $('scroll-da');
-const intEN     = $('interim-en'), intDA     = $('interim-da');
-const micDot    = $('mic-dot'),    micLbl    = $('mic-label');
-const infoEl    = $('info'),       dbgEl     = $('debug');
-const btnStart  = $('btn-start'),  btnStop   = $('btn-stop');
-const permOvr   = $('perm-overlay'), permErr = $('perm-err');
-const btnGrant  = $('btn-grant');
-const minPanel  = $('minutes-panel');
-const minBody   = $('minutes-body');
-const minEmpty  = $('minutes-empty');
+const $        = id => document.getElementById(id);
+const scrollEN = $('scroll-en'),  scrollDA = $('scroll-da');
+const intEN    = $('interim-en'), intDA    = $('interim-da');
+const micDot   = $('mic-dot'),    micLbl   = $('mic-label');
+const dbgEl    = $('debug'),      infoEl   = $('info');
+const btnStart = $('btn-start'),  btnStop  = $('btn-stop');
+const permOvr  = $('perm-overlay'), permErr = $('perm-err');
+const btnGrant = $('btn-grant');
+const minPanel = $('minutes-panel');
+const setPanel = $('settings-panel');
+const minBody  = $('minutes-body');
+const minEmpty = $('minutes-empty');
+const root     = document.documentElement;
 
-function log(m)           { console.log('[subs]',m); dbgEl.textContent=m; }
+function log(m)           { console.log('[subs]',m); dbgEl.textContent = m; }
 function setMic(cls, lbl) { micDot.className=cls; micLbl.textContent=lbl; infoEl.textContent=lbl; }
 
 // ══════════════════════════════════════════════════════════
-//  localStorage persistence
+//  Settings
+// ══════════════════════════════════════════════════════════
+function applySettings() {
+  const r = root.style;
+  // Transparent
+  document.body.classList.toggle('transparent', cfg.transparent);
+  $('set-transparent').checked = cfg.transparent;
+
+  // Font sizes — each age step is size0 - (step * age)
+  for (let i=0; i<=5; i++) {
+    const sz = Math.max(8, cfg.size0 - cfg.step * i);
+    r.setProperty(`--font-size-${i}`, sz + 'px');
+  }
+
+  // Fade speed
+  r.setProperty('--fade-speed', cfg.fade + 's');
+
+  // Max lines
+  maxLines = cfg.lines;
+
+  // Mobile column height — update CSS grid rows
+  const styleId = 'dynamic-col-height';
+  let styleEl = document.getElementById(styleId);
+  if (!styleEl) { styleEl = document.createElement('style'); styleEl.id = styleId; document.head.appendChild(styleEl); }
+  styleEl.textContent = `
+    @media (max-width:600px) {
+      #stage { grid-template-rows: ${cfg.height}fr 1px ${100-cfg.height}fr; }
+    }
+  `;
+
+  // Update slider display values
+  $('val-size0').textContent  = cfg.size0 + 'px';
+  $('val-step').textContent   = cfg.step  + 'px';
+  $('val-fade').textContent   = cfg.fade  + 's';
+  $('val-lines').textContent  = cfg.lines;
+  $('val-height').textContent = cfg.height + '%';
+
+  // Sync slider positions
+  $('set-size0').value  = cfg.size0;
+  $('set-step').value   = cfg.step;
+  $('set-fade').value   = cfg.fade;
+  $('set-lines').value  = cfg.lines;
+  $('set-height').value = cfg.height;
+}
+
+function saveSettings() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    stored.settings = cfg;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+  } catch(e) {}
+}
+
+function loadSettings() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    if (stored.settings) cfg = {...DEFAULTS, ...stored.settings};
+  } catch(e) {}
+  applySettings();
+}
+
+// Slider wiring
+function wire(id, key, isFloat) {
+  $(id).addEventListener('input', e => {
+    cfg[key] = isFloat ? parseFloat(e.target.value) : parseInt(e.target.value);
+    applySettings();
+    saveSettings();
+  });
+}
+wire('set-size0',  'size0',  false);
+wire('set-step',   'step',   false);
+wire('set-fade',   'fade',   true);
+wire('set-lines',  'lines',  false);
+wire('set-height', 'height', false);
+
+$('set-transparent').addEventListener('change', e => {
+  cfg.transparent = e.target.checked;
+  applySettings();
+  saveSettings();
+});
+
+$('btn-reset-settings').addEventListener('click', () => {
+  cfg = {...DEFAULTS};
+  applySettings();
+  saveSettings();
+});
+
+$('btn-settings').addEventListener('click', () => setPanel.classList.toggle('show'));
+$('btn-settings-close').addEventListener('click', () => setPanel.classList.remove('show'));
+
+// ══════════════════════════════════════════════════════════
+//  localStorage
 // ══════════════════════════════════════════════════════════
 function saveMinutes() {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ minutes, summary })); } catch(e) {}
+  try {
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    stored.minutes = minutes;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+  } catch(e) {}
 }
 
 function loadMinutes() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const stored = JSON.parse(raw);
-      // Support both old format (plain array) and new format ({minutes, summary})
-      if (Array.isArray(stored)) {
-        minutes = stored;
-      } else {
-        minutes = stored.minutes || [];
-        summary = stored.summary || null;
-      }
-      renderAllMinutes();
-      if (summary) renderSummary();
-    }
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    minutes = stored.minutes || [];
+    if (minutes.length) renderAllMinutes();
   } catch(e) { minutes = []; }
 }
 
@@ -409,19 +630,17 @@ function addLine(col, text, shimmer) {
   const scroll = col==='en' ? scrollEN : scrollDA;
   const intEl  = col==='en' ? intEN    : intDA;
 
-  // Age existing lines up one step
   lines.forEach((el,i) => {
     el.classList.remove('age0','age1','age2','age3','age4','age5');
     el.classList.add('age' + Math.min(i+1, 5));
   });
-
   const div = document.createElement('div');
   div.className = 'line-block age0';
   if (shimmer) div.classList.add('shimmer-text');
   div.textContent = text;
   scroll.insertBefore(div, intEl);
   lines.unshift(div);
-  while (lines.length > MAX_LINES) lines.pop().remove();
+  while (lines.length > maxLines) lines.pop().remove();
 }
 
 function updateNewest(col, text) {
@@ -468,15 +687,11 @@ async function drainQueue() {
   try {
     const result = await translate(text, isEN?'en':'da', isEN?'da':'en');
     updateNewest(dst, result);
-
-    // Record to minutes
-    const entry = {
+    addMinuteEntry({
       time: new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}),
       en: isEN ? text : result,
       da: isEN ? result : text
-    };
-    addMinuteEntry(entry);
-
+    });
   } catch(e) {
     updateNewest(dst, '—');
     log('Translate err: '+e.message);
@@ -490,10 +705,7 @@ async function drainQueue() {
 function addMinuteEntry(entry) {
   minutes.push(entry);
   saveMinutes();
-
-  // Hide empty state
   if (minEmpty) minEmpty.style.display = 'none';
-
   const row = document.createElement('div');
   row.className = 'minute-entry';
   row.innerHTML = `
@@ -502,19 +714,12 @@ function addMinuteEntry(entry) {
     <div class="minute-da">${escHtml(entry.da)}</div>
   `;
   minBody.appendChild(row);
-  // Auto-scroll to bottom
   minBody.scrollTop = minBody.scrollHeight;
 }
 
 function renderAllMinutes() {
-  // Clear existing rows (keep empty message)
-  Array.from(minBody.children).forEach(el => {
-    if (el.id !== 'minutes-empty') el.remove();
-  });
-  if (minutes.length === 0) {
-    if (minEmpty) minEmpty.style.display = '';
-    return;
-  }
+  Array.from(minBody.children).forEach(el => { if (el.id !== 'minutes-empty') el.remove(); });
+  if (!minutes.length) { if (minEmpty) minEmpty.style.display = ''; return; }
   if (minEmpty) minEmpty.style.display = 'none';
   minutes.forEach(e => {
     const row = document.createElement('div');
@@ -533,65 +738,34 @@ function escHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+function wrapText(text, width) {
+  const words = text.split(' ');
+  const lines = []; let cur = '';
+  words.forEach(w => {
+    if ((cur+' '+w).trim().length <= width) { cur = (cur+' '+w).trim(); }
+    else { if (cur) lines.push(cur); cur = w; }
+  });
+  if (cur) lines.push(cur);
+  return lines.length ? lines : [''];
+}
+
 function downloadMinutes() {
   if (!minutes.length) { alert('No minutes to download yet.'); return; }
   const date = new Date().toLocaleDateString('en-GB');
-
-  let txt = `ASSEMBLY MINUTES\n`;
-  txt +=    `Date: ${date}\n`;
-  txt +=    `Generated by Assembly Live Subtitles\n`;
-  txt +=    `${'─'.repeat(60)}\n\n`;
-  txt +=    `${'TIME'.padEnd(8)}${'ENGLISH'.padEnd(50)}DANISH\n`;
-  txt +=    `${'─'.repeat(60)}\n`;
-
+  let txt  = `ASSEMBLY MINUTES\nDate: ${date}\nGenerated by Assembly Live Subtitles\n`;
+  txt += `${'─'.repeat(60)}\n\n${'TIME'.padEnd(8)}${'ENGLISH'.padEnd(50)}DANISH\n${'─'.repeat(60)}\n`;
   minutes.forEach(e => {
-    const enLines = wrapText(e.en, 46);
-    const daLines = wrapText(e.da, 46);
-    const maxLines = Math.max(enLines.length, daLines.length);
-    for (let i=0; i<maxLines; i++) {
-      const time = i===0 ? e.time : '';
-      const en   = enLines[i] || '';
-      const da   = daLines[i] || '';
-      txt += `${time.padEnd(8)}${en.padEnd(50)}${da}\n`;
+    const enL = wrapText(e.en, 46), daL = wrapText(e.da, 46);
+    for (let i=0; i<Math.max(enL.length,daL.length); i++) {
+      txt += `${(i===0?e.time:'').padEnd(8)}${(enL[i]||'').padEnd(50)}${daL[i]||''}\n`;
     }
     txt += '\n';
   });
-
-  // Append AI summary if available
-  if (summary && summary.en && summary.en.length) {
-    txt += `\n${'═'.repeat(60)}\n`;
-    txt += `AI SECRETARY — KEY POINTS\n`;
-    txt += `${'═'.repeat(60)}\n\n`;
-    txt += `ENGLISH\n${'─'.repeat(30)}\n`;
-    summary.en.forEach((pt, i) => { txt += `${i+1}. ${pt}\n`; });
-    txt += `\nDANISH / DANSK\n${'─'.repeat(30)}\n`;
-    summary.da.forEach((pt, i) => { txt += `${i+1}. ${pt}\n`; });
-    txt += '\n';
-  }
-
-  const blob = new Blob([txt], {type:'text/plain;charset=utf-8'});
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = `assembly-minutes-${date.replace(/\//g,'-')}.txt`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-function wrapText(text, width) {
-  const words = text.split(' ');
-  const lines = [];
-  let current = '';
-  words.forEach(w => {
-    if ((current + ' ' + w).trim().length <= width) {
-      current = (current + ' ' + w).trim();
-    } else {
-      if (current) lines.push(current);
-      current = w;
-    }
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(new Blob([txt],{type:'text/plain;charset=utf-8'})),
+    download: `assembly-minutes-${date.replace(/\//g,'-')}.txt`
   });
-  if (current) lines.push(current);
-  return lines.length ? lines : [''];
+  a.click(); URL.revokeObjectURL(a.href);
 }
 
 $('btn-minutes').addEventListener('click', () => minPanel.classList.toggle('show'));
@@ -599,117 +773,8 @@ $('btn-minutes-close').addEventListener('click', () => minPanel.classList.remove
 $('btn-download').addEventListener('click', downloadMinutes);
 $('btn-minutes-clear').addEventListener('click', () => {
   if (!confirm('Clear all minutes? This cannot be undone.')) return;
-  minutes = [];
-  summary = null;
-  saveMinutes();
-  renderAllMinutes();
-  // Reset summary UI
-  $('summary-content').classList.remove('show');
-  $('summary-en').innerHTML = '';
-  $('summary-da').innerHTML = '';
-  $('summary-err').className = 'show' in $('summary-err').classList ? '' : '';
-  $('summary-err').classList.remove('show');
+  minutes = []; saveMinutes(); renderAllMinutes();
 });
-
-// ══════════════════════════════════════════════════════════
-//  AI Summary via Anthropic API
-// ══════════════════════════════════════════════════════════
-
-function saveSummary() {
-  try {
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-    stored.summary = summary;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
-  } catch(e) {}
-}
-
-function loadSummaryFromStorage(stored) {
-  if (stored && stored.summary) {
-    summary = stored.summary;
-    renderSummary();
-  }
-}
-
-function renderSummary() {
-  if (!summary) return;
-  const enList = $('summary-en');
-  const daList = $('summary-da');
-  enList.innerHTML = summary.en.map(pt => `<li class="en">${escHtml(pt)}</li>`).join('');
-  daList.innerHTML = summary.da.map(pt => `<li class="da">${escHtml(pt)}</li>`).join('');
-  $('summary-content').classList.add('show');
-}
-
-async function summariseAssembly() {
-  if (!minutes.length) {
-    $('summary-err').textContent = 'No minutes to summarise yet.';
-    $('summary-err').classList.add('show');
-    return;
-  }
-
-  const btn = $('btn-summarise');
-  const spinner = $('summary-spinner');
-  const errEl = $('summary-err');
-
-  btn.disabled = true;
-  spinner.classList.add('show');
-  errEl.classList.remove('show');
-  $('summary-content').classList.remove('show');
-
-  // Build transcript for Claude
-  const transcript = minutes.map(e =>
-    `[${e.time}] EN: ${e.en}\n[${e.time}] DA: ${e.da}`
-  ).join('\n\n');
-
-  const prompt = `You are the secretary for a school assembly. Below is a bilingual transcript (English and Danish) of what was said.
-
-Extract 4–8 key points from the assembly. Return ONLY valid JSON in this exact format, nothing else:
-{
-  "en": ["Key point 1 in English", "Key point 2 in English", "..."],
-  "da": ["Nøglepunkt 1 på dansk", "Nøglepunkt 2 på dansk", "..."]
-}
-
-The English and Danish lists must have the same number of items and be direct translations of each other.
-Be concise — each point should be one clear sentence.
-Focus on decisions made, announcements, events mentioned, and action items.
-
-TRANSCRIPT:
-${transcript}`;
-
-  try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-
-    const data = await response.json();
-    const raw = data.content.map(b => b.text || '').join('').trim();
-
-    // Strip any markdown fences just in case
-    const clean = raw.replace(/^```json\s*/i, '').replace(/```\s*$/,'').trim();
-    const parsed = JSON.parse(clean);
-
-    if (!parsed.en || !parsed.da || !Array.isArray(parsed.en)) throw new Error('Unexpected response format');
-
-    summary = parsed;
-    saveSummary();
-    renderSummary();
-    btn.textContent = 'Re-summarise';
-
-  } catch(e) {
-    errEl.textContent = 'Summary failed: ' + e.message + '. Make sure you are using the claude.ai hosted version of this page.';
-    errEl.classList.add('show');
-  } finally {
-    btn.disabled = false;
-    spinner.classList.remove('show');
-  }
-}
-
-$('btn-summarise').addEventListener('click', summariseAssembly);
 
 // ══════════════════════════════════════════════════════════
 //  Recognizer
@@ -736,51 +801,35 @@ function startRec() {
   if (!isRunning) return;
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) return;
-
   rec = new SR();
-  rec.lang            = recLang;
-  rec.continuous      = true;
-  rec.interimResults  = true;
-  rec.maxAlternatives = 1;
-
+  rec.lang = recLang; rec.continuous = true; rec.interimResults = true; rec.maxAlternatives = 1;
   rec.onstart = () => { log('REC: '+recLang); if (!xlating) setMic('on','Listening…'); };
-
   rec.onresult = (e) => {
     let interim='', finals='';
     for (let i=e.resultIndex; i<e.results.length; i++) {
       const t = e.results[i][0].transcript;
-      if (e.results[i].isFinal) finals  += t+' ';
-      else                      interim += t;
+      if (e.results[i].isFinal) finals += t+' ';
+      else interim += t;
     }
     const lang = recLang.startsWith('en') ? 'en' : 'da';
-    if (lang==='en') intEN.textContent = interim;
-    else             intDA.textContent = interim;
-
+    if (lang==='en') intEN.textContent = interim; else intDA.textContent = interim;
     if (finals.trim()) {
-      if (lang==='en') intEN.textContent='';
-      else             intDA.textContent='';
+      if (lang==='en') intEN.textContent=''; else intDA.textContent='';
       log(lang.toUpperCase()+': '+finals.trim().slice(0,50));
       enqueue(finals.trim(), lang);
     }
   };
-
   rec.onerror = (e) => {
     if (e.error==='no-speech'||e.error==='aborted') return;
     log('REC err: '+e.error);
     if (e.error==='not-allowed'||e.error==='service-not-allowed') {
       permErr.textContent='Mic blocked. Tap 🔒 → Site settings → Microphone → Allow → refresh.';
-      permErr.style.display='block';
-      permOvr.classList.add('show');
-      stopAll();
+      permErr.style.display='block'; permOvr.classList.add('show'); stopAll();
     }
   };
-
   rec.onend = () => {
-    if (isRunning && rec) {
-      setTimeout(()=>{ try{ rec && rec.start(); }catch(ex){} }, 250);
-    }
+    if (isRunning && rec) setTimeout(()=>{ try{ rec&&rec.start(); }catch(ex){} }, 250);
   };
-
   try { rec.start(); } catch(e) { log('rec.start err: '+e.message); }
 }
 
@@ -788,16 +837,12 @@ function startRec() {
 //  Start / stop
 // ══════════════════════════════════════════════════════════
 function doStart() {
-  isRunning = true;
-  btnStart.disabled = true;
-  btnStop.disabled  = false;
-  recLang = mode==='en' ? 'en-US' : 'da-DK';
-  startRec();
+  isRunning = true; btnStart.disabled = true; btnStop.disabled = false;
+  recLang = mode==='en' ? 'en-US' : 'da-DK'; startRec();
 }
 
 function stopAll() {
-  isRunning = false;
-  killRec();
+  isRunning = false; killRec();
   if (micStream) { micStream.getTracks().forEach(t=>t.stop()); micStream=null; }
   xQueue.length=0; xlating=false;
   btnStart.disabled=false; btnStop.disabled=true;
@@ -809,18 +854,14 @@ function stopAll() {
 //  Permission
 // ══════════════════════════════════════════════════════════
 btnGrant.addEventListener('click', async () => {
-  btnGrant.textContent='Requesting…'; btnGrant.disabled=true;
-  permErr.style.display='none';
+  btnGrant.textContent='Requesting…'; btnGrant.disabled=true; permErr.style.display='none';
   try {
     micStream = await navigator.mediaDevices.getUserMedia({audio:true,video:false});
-    log('Mic granted ✓');
-    permOvr.classList.remove('show');
-    doStart();
+    log('Mic granted ✓'); permOvr.classList.remove('show'); doStart();
   } catch(e) {
     log('getUserMedia denied: '+e.name);
     btnGrant.textContent='Try Again'; btnGrant.disabled=false;
-    permErr.textContent='Could not access mic: '+e.message;
-    permErr.style.display='block';
+    permErr.textContent='Could not access mic: '+e.message; permErr.style.display='block';
   }
 });
 
@@ -845,23 +886,22 @@ function startAll() {
 
 btnStart.addEventListener('click', startAll);
 btnStop.addEventListener ('click', stopAll);
-
 $('btn-clear').addEventListener('click', ()=>{
   linesEN.forEach(el=>el.remove()); linesEN.length=0;
   linesDA.forEach(el=>el.remove()); linesDA.length=0;
-  intEN.textContent=''; intDA.textContent='';
-  lastQueued='';
+  intEN.textContent=''; intDA.textContent=''; lastQueued='';
 });
 
 document.addEventListener('keydown', e=>{
-  if (e.target.tagName==='BUTTON') return;
-  if (e.key===' '){e.preventDefault(); isRunning?stopAll():startAll();}
-  if (e.key==='Escape') { stopAll(); minPanel.classList.remove('show'); }
+  if (e.target.tagName==='BUTTON'||e.target.tagName==='INPUT') return;
+  if (e.key===' ')            { e.preventDefault(); isRunning?stopAll():startAll(); }
+  if (e.key==='Escape')       { stopAll(); minPanel.classList.remove('show'); setPanel.classList.remove('show'); }
   if (e.key==='m'||e.key==='M') minPanel.classList.toggle('show');
-  if (e.key==='F11'){e.preventDefault();toggleFS();}
+  if (e.key==='s'||e.key==='S') setPanel.classList.toggle('show');
+  if (e.key==='F11')          { e.preventDefault(); toggleFS(); }
 });
 
-function toggleFS(){
+function toggleFS() {
   if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
   else document.exitFullscreen();
 }
@@ -870,7 +910,8 @@ function toggleFS(){
 //  Init
 // ══════════════════════════════════════════════════════════
 setMode('en');
-loadMinutes(); // restore from localStorage on page load
+loadSettings();
+loadMinutes();
 
 window.onload = () => {
   const hasSR   = !!(window.SpeechRecognition||window.webkitSpeechRecognition);

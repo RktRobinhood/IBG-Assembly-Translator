@@ -1,120 +1,156 @@
-import { chooseCaptionTheme } from './contrast.js';
 import { TranslationClient, languageCode } from './translator.js';
 
 const $ = (id) => document.getElementById(id);
 const elements = {
-  stage: $('stage'), presentation: $('presentation'), empty: $('empty-state'), captions: $('captions'),
-  sourceCaption: $('source-caption'), targetCaption: $('target-caption'), status: $('status'), dot: $('live-dot'),
-  start: $('start-button'), stop: $('stop-button'), share: $('share-button'), emptyShare: $('empty-share'),
-  fullscreen: $('fullscreen-button'), settings: $('settings-button'), dialog: $('settings-dialog'),
-  sourceLanguage: $('source-language'), targetLanguage: $('target-language'), fontSize: $('font-size'),
-  fontSizeValue: $('font-size-value'), scrim: $('scrim'), scrimValue: $('scrim-value'),
-  showSource: $('show-source'), adaptive: $('adaptive-colour'), download: $('download-button'),
-  clear: $('clear-button'), sampler: $('sampler')
+  status: $('status'), statusDot: $('status-dot'), overlay: $('overlay-button'), start: $('start-button'), stop: $('stop-button'),
+  sourceLanguage: $('source-language'), targetLanguage: $('target-language'), direction: $('direction-label'),
+  sourceColumn: $('source-column-label'), targetColumn: $('target-column-label'), fontSize: $('font-size'),
+  fontSizeValue: $('font-size-value'), showSource: $('show-source'), download: $('download-button'), clear: $('clear-button'),
+  transcriptList: $('transcript-list'), transcriptEmpty: $('transcript-empty'), entryCount: $('entry-count'),
+  sourceCaption: $('source-caption'), targetCaption: $('target-caption')
 };
 
-const DEFAULT_SETTINGS = { sourceLanguage: 'en-US', targetLanguage: 'da', fontSize: 52, scrim: 56, showSource: true, adaptive: true };
-const state = {
-  running: false, recognition: null, microphone: null, presentation: null, transcript: [],
-  draftTimer: null, draftRequest: null, finalRequests: new Set(), draftQueued: '', draftBusy: false,
-  translationSequence: 0, lastDraft: '', theme: 'dark', uiTimer: null
-};
+const LANGUAGE_NAMES = { en: 'English', da: 'Dansk' };
+const DEFAULT_SETTINGS = { sourceLanguage: 'en-US', targetLanguage: 'da', fontSize: 48, showSource: true };
 const translator = new TranslationClient();
+const state = {
+  running: false, recognition: null, microphone: null, overlayWindow: null, transcript: loadTranscript(),
+  draftTimer: null, draftBusy: false, draftQueued: '', draftRequest: null, finalRequests: new Set(),
+  translationSequence: 0, lastDraft: '', currentSource: '', currentTarget: ''
+};
 let settings = loadSettings();
 
-function setStatus(message, active = state.running) {
-  elements.status.textContent = message;
-  elements.dot.classList.toggle('active', active);
+function loadSettings() {
+  try { return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem('ibg-console-settings') || '{}') }; }
+  catch { return { ...DEFAULT_SETTINGS }; }
 }
 
-function showCaption(element, text) {
-  element.textContent = text;
-  element.classList.toggle('visible', Boolean(text));
+function loadTranscript() {
+  try { return JSON.parse(localStorage.getItem('ibg-assembly-transcript') || '[]'); }
+  catch { return []; }
+}
+
+function saveSettings() { localStorage.setItem('ibg-console-settings', JSON.stringify(settings)); }
+function saveTranscript() { localStorage.setItem('ibg-assembly-transcript', JSON.stringify(state.transcript.slice(-500))); }
+
+function sourceCode() { return languageCode(settings.sourceLanguage); }
+function setStatus(message, tone = state.running ? 'live' : '') {
+  elements.status.textContent = message;
+  elements.statusDot.className = `status-dot ${tone}`.trim();
+  updateOverlayStatus(message);
 }
 
 function applySettings() {
-  settings.scrim = Math.max(18, Number(settings.scrim) || DEFAULT_SETTINGS.scrim);
   elements.sourceLanguage.value = settings.sourceLanguage;
   elements.targetLanguage.value = settings.targetLanguage;
   elements.fontSize.value = settings.fontSize;
   elements.fontSizeValue.value = `${settings.fontSize} px`;
-  elements.scrim.value = settings.scrim;
-  elements.scrimValue.value = `${settings.scrim}%`;
   elements.showSource.checked = settings.showSource;
-  elements.adaptive.checked = settings.adaptive;
-  document.documentElement.style.setProperty('--caption-size', `${settings.fontSize}px`);
-  elements.sourceCaption.style.display = settings.showSource ? '' : 'none';
-  applyTheme(settings.adaptive ? state.theme : 'dark');
+  elements.direction.textContent = `${sourceCode().toUpperCase()} → ${settings.targetLanguage.toUpperCase()}`;
+  elements.sourceColumn.textContent = LANGUAGE_NAMES[sourceCode()];
+  elements.targetColumn.textContent = LANGUAGE_NAMES[settings.targetLanguage];
+  updateOverlayAppearance();
 }
 
-function applyTheme(theme) {
-  state.theme = theme;
-  const visibleTheme = settings.adaptive ? theme : 'dark';
-  elements.captions.classList.toggle('caption-theme-light', visibleTheme === 'light');
-  elements.captions.classList.toggle('caption-theme-dark', visibleTheme !== 'light');
-  const alpha = Math.max(.18, settings.scrim / 100);
-  const scrim = visibleTheme === 'light' ? `rgba(255,255,255,${Math.min(.88, alpha + .12)})` : `rgba(0,0,0,${alpha})`;
-  document.documentElement.style.setProperty('--caption-scrim', scrim);
+function setCurrentCaptions(source, target = state.currentTarget) {
+  state.currentSource = source;
+  state.currentTarget = target;
+  elements.sourceCaption.textContent = source || 'Waiting for speech…';
+  elements.targetCaption.textContent = target || 'Translation will appear here';
+  renderOverlayCaptions();
 }
 
-function loadSettings() {
-  try { return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem('ibg-live-settings') || '{}') }; }
-  catch { return { ...DEFAULT_SETTINGS }; }
-}
+function overlaySupported() { return 'documentPictureInPicture' in window; }
 
-function persistSettings() { localStorage.setItem('ibg-live-settings', JSON.stringify(settings)); }
-
-async function sharePresentation() {
-  if (!navigator.mediaDevices?.getDisplayMedia) {
-    setStatus('Screen sharing requires Chrome or Edge over HTTPS', false);
+async function openOverlay() {
+  if (!overlaySupported()) {
+    setStatus('Always-on-top subtitles require current desktop Chrome or Edge', 'warning');
+    return;
+  }
+  if (state.overlayWindow && !state.overlayWindow.closed) {
+    state.overlayWindow.focus();
     return;
   }
   try {
-    const stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 15, max: 30 } }, audio: false });
-    stopPresentation();
-    state.presentation = stream;
-    elements.presentation.srcObject = stream;
-    await elements.presentation.play();
-    elements.presentation.classList.add('active');
-    elements.empty.classList.add('hidden');
-    elements.share.textContent = 'Change presentation';
-    stream.getVideoTracks()[0].addEventListener('ended', stopPresentation, { once: true });
-    setStatus(state.running ? 'Listening · presentation shared' : 'Presentation shared', state.running);
+    const pipWindow = await documentPictureInPicture.requestWindow({ width: 960, height: 260, preferInitialWindowPlacement: true });
+    state.overlayWindow = pipWindow;
+    pipWindow.document.title = 'IBG Live Subtitles';
+    const style = pipWindow.document.createElement('style');
+    style.textContent = overlayStyles();
+    pipWindow.document.head.append(style);
+    const frame = pipWindow.document.createElement('main');
+    frame.className = 'subtitle-frame';
+    frame.innerHTML = '<div class="overlay-status"><span></span><b>IBG LIVE SUBTITLES</b><em id="overlay-direction"></em></div><p id="overlay-source"></p><p id="overlay-target"></p>';
+    pipWindow.document.body.append(frame);
+    pipWindow.addEventListener('pagehide', () => {
+      state.overlayWindow = null;
+      elements.overlay.textContent = 'Open subtitle window';
+      setStatus(state.running ? 'Listening · subtitle window closed' : 'Subtitle window closed', state.running ? 'warning' : '');
+    }, { once: true });
+    elements.overlay.textContent = 'Focus subtitle window';
+    updateOverlayAppearance();
+    renderOverlayCaptions();
+    setStatus(state.running ? 'Listening · subtitles visible' : 'Subtitle window ready', state.running ? 'live' : '');
   } catch (error) {
-    if (error.name !== 'NotAllowedError') setStatus(`Could not share presentation: ${error.message}`, false);
+    if (error.name !== 'NotAllowedError') setStatus(`Could not open subtitle window: ${error.message}`, 'warning');
   }
 }
 
-function stopPresentation() {
-  state.presentation?.getTracks().forEach((track) => track.stop());
-  state.presentation = null;
-  elements.presentation.srcObject = null;
-  elements.presentation.classList.remove('active');
-  elements.empty.classList.remove('hidden');
-  elements.share.textContent = 'Share presentation';
-  applyTheme('dark');
+function overlayStyles() {
+  return `
+    :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #050706; }
+    body { display: grid; place-items: center; }
+    .subtitle-frame { width: 100%; padding: 12px 22px 18px; text-align: center; }
+    .overlay-status { display: flex; align-items: center; justify-content: center; gap: 7px; margin-bottom: 8px; color: #a7b2ae; font-size: 10px; letter-spacing: .1em; }
+    .overlay-status span { width: 7px; height: 7px; border-radius: 50%; background: #20c997; box-shadow: 0 0 0 4px rgba(32,201,151,.12); }
+    .overlay-status em { margin-left: 5px; color: #73d8bb; font-style: normal; font-weight: 800; }
+    p { margin: 0 auto; max-width: 100%; overflow-wrap: anywhere; text-wrap: balance; }
+    #overlay-source { display: ${settings.showSource ? 'block' : 'none'}; margin-bottom: 5px; color: #b8c2bf; font-size: ${Math.max(18, settings.fontSize * .52)}px; line-height: 1.18; }
+    #overlay-target { color: #fff; font-size: ${settings.fontSize}px; font-weight: 850; line-height: 1.13; letter-spacing: -.025em; text-shadow: 0 2px 4px #000; }
+  `;
+}
+
+function updateOverlayAppearance() {
+  const doc = state.overlayWindow?.document;
+  if (!doc) return;
+  const style = doc.querySelector('style');
+  if (style) style.textContent = overlayStyles();
+  const direction = doc.getElementById('overlay-direction');
+  if (direction) direction.textContent = `${sourceCode().toUpperCase()} → ${settings.targetLanguage.toUpperCase()}`;
+}
+
+function renderOverlayCaptions() {
+  const doc = state.overlayWindow?.document;
+  if (!doc) return;
+  const source = doc.getElementById('overlay-source');
+  const target = doc.getElementById('overlay-target');
+  if (source) source.textContent = state.currentSource || 'Waiting for speech…';
+  if (target) target.textContent = state.currentTarget || 'Translation will appear here';
+}
+
+function updateOverlayStatus(message) {
+  const status = state.overlayWindow?.document?.querySelector('.overlay-status b');
+  if (status) status.textContent = state.running ? 'IBG · LIVE' : `IBG · ${message.toUpperCase()}`;
 }
 
 function speechRecognitionConstructor() { return window.SpeechRecognition || window.webkitSpeechRecognition; }
 
 async function startSubtitles() {
   const SpeechRecognition = speechRecognitionConstructor();
-  if (!SpeechRecognition) {
-    setStatus('Live speech recognition requires Chrome or Edge', false);
-    return;
-  }
+  if (!SpeechRecognition) { setStatus('Speech recognition requires desktop Chrome or Edge', 'warning'); return; }
   try {
     state.microphone = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true }, video: false });
   } catch (error) {
-    setStatus(error.name === 'NotAllowedError' ? 'Microphone permission was not granted' : `Microphone error: ${error.message}`, false);
+    setStatus(error.name === 'NotAllowedError' ? 'Microphone permission was not granted' : `Microphone error: ${error.message}`, 'warning');
     return;
   }
-
   state.running = true;
   elements.start.disabled = true;
   elements.stop.disabled = false;
   createRecognition(SpeechRecognition);
-  setStatus('Listening…');
+  setStatus(state.overlayWindow ? 'Listening · subtitles visible' : 'Listening · open subtitle window', state.overlayWindow ? 'live' : 'warning');
 }
 
 function createRecognition(SpeechRecognition = speechRecognitionConstructor()) {
@@ -125,18 +161,17 @@ function createRecognition(SpeechRecognition = speechRecognitionConstructor()) {
   recognition.continuous = true;
   recognition.interimResults = true;
   recognition.maxAlternatives = 1;
-  recognition.onstart = () => setStatus('Listening…');
   recognition.onresult = handleSpeechResult;
   recognition.onerror = ({ error }) => {
     if (['aborted', 'no-speech'].includes(error)) return;
     const messages = { 'not-allowed': 'Microphone permission was blocked', 'audio-capture': 'No microphone is available', network: 'Speech service network error' };
-    setStatus(messages[error] || `Speech recognition error: ${error}`, error === 'network');
+    setStatus(messages[error] || `Speech recognition error: ${error}`, 'warning');
   };
   recognition.onend = () => {
     if (state.running && state.recognition === recognition) window.setTimeout(() => createRecognition(SpeechRecognition), 300);
   };
   try { recognition.start(); }
-  catch (error) { setStatus(`Could not start speech recognition: ${error.message}`, false); }
+  catch (error) { setStatus(`Could not start speech recognition: ${error.message}`, 'warning'); }
 }
 
 function handleSpeechResult(event) {
@@ -147,10 +182,9 @@ function handleSpeechResult(event) {
     if (event.results[index].isFinal) finals.push(text);
     else interim += `${text} `;
   }
-  const cleanInterim = interim.trim();
-  if (cleanInterim) {
-    showCaption(elements.sourceCaption, cleanInterim);
-    scheduleDraftTranslation(cleanInterim);
+  if (interim.trim()) {
+    setCurrentCaptions(interim.trim());
+    scheduleDraftTranslation(interim.trim());
   }
   finals.filter(Boolean).forEach(commitFinalPhrase);
 }
@@ -170,10 +204,10 @@ async function runDraftTranslation() {
   state.draftRequest = new AbortController();
   const sequence = ++state.translationSequence;
   try {
-    const translated = await translator.translate(text, languageCode(settings.sourceLanguage), settings.targetLanguage, state.draftRequest.signal);
-    if (sequence === state.translationSequence) showCaption(elements.targetCaption, translated);
+    const translated = await translator.translate(text, sourceCode(), settings.targetLanguage, state.draftRequest.signal);
+    if (sequence === state.translationSequence) setCurrentCaptions(text, translated);
   } catch (error) {
-    if (error.name !== 'AbortError') setStatus('Listening · translation service delayed');
+    if (error.name !== 'AbortError') setStatus('Listening · translation service delayed', 'warning');
   } finally {
     state.draftBusy = false;
     if (state.running && state.draftQueued !== text) state.draftTimer = window.setTimeout(runDraftTranslation, 350);
@@ -182,26 +216,29 @@ async function runDraftTranslation() {
 
 async function commitFinalPhrase(text) {
   clearTimeout(state.draftTimer);
+  state.draftTimer = null;
   state.draftRequest?.abort();
   const sequence = ++state.translationSequence;
-  showCaption(elements.sourceCaption, text);
-  setStatus('Translating…');
-  const entry = { time: new Date().toISOString(), source: text, translation: '' };
+  setCurrentCaptions(text, 'Translating…');
+  const entry = { id: crypto.randomUUID(), time: new Date().toISOString(), source: text, translation: '' };
   state.transcript.push(entry);
+  saveTranscript();
+  renderTranscript();
   const request = new AbortController();
   state.finalRequests.add(request);
   try {
-    const translated = await translator.translate(text, languageCode(settings.sourceLanguage), settings.targetLanguage, request.signal);
-    entry.translation = translated;
-    if (sequence === state.translationSequence) showCaption(elements.targetCaption, translated);
-    if (state.running) setStatus('Listening…');
+    entry.translation = await translator.translate(text, sourceCode(), settings.targetLanguage, request.signal);
+    if (sequence === state.translationSequence) setCurrentCaptions(text, entry.translation);
+    if (state.running) setStatus(state.overlayWindow ? 'Listening · subtitles visible' : 'Listening · open subtitle window', state.overlayWindow ? 'live' : 'warning');
   } catch (error) {
     if (request.signal.aborted) return;
-    entry.translation = '[translation unavailable]';
-    if (sequence === state.translationSequence) showCaption(elements.targetCaption, 'Translation unavailable');
-    if (state.running) setStatus(`Listening · ${error.message}`);
+    entry.translation = 'Translation unavailable';
+    if (sequence === state.translationSequence) setCurrentCaptions(text, entry.translation);
+    if (state.running) setStatus(`Listening · ${error.message}`, 'warning');
   } finally {
     state.finalRequests.delete(request);
+    saveTranscript();
+    renderTranscript();
   }
 }
 
@@ -212,16 +249,17 @@ function stopSubtitles() {
   state.microphone?.getTracks().forEach((track) => track.stop());
   state.microphone = null;
   clearTimeout(state.draftTimer);
+  state.draftTimer = null;
   state.draftRequest?.abort();
   state.finalRequests.forEach((request) => request.abort());
   state.finalRequests.clear();
   state.translationSequence += 1;
   elements.start.disabled = false;
   elements.stop.disabled = true;
-  setStatus('Stopped', false);
+  setStatus('Stopped');
 }
 
-function restartForLanguageChange() {
+function restartRecognition() {
   if (!state.running) return;
   const previous = state.recognition;
   state.recognition = null;
@@ -229,89 +267,71 @@ function restartForLanguageChange() {
   createRecognition();
 }
 
-function samplePresentationColour() {
-  if (!state.presentation || elements.presentation.readyState < 2 || !settings.adaptive) return;
-  const context = elements.sampler.getContext('2d', { willReadFrequently: true });
-  const width = elements.sampler.width;
-  const height = elements.sampler.height;
-  const videoWidth = elements.presentation.videoWidth;
-  const videoHeight = elements.presentation.videoHeight;
-  if (!videoWidth || !videoHeight) return;
-  const scale = Math.min(width / videoWidth, height / videoHeight);
-  const drawWidth = videoWidth * scale;
-  const drawHeight = videoHeight * scale;
-  context.fillStyle = '#000';
-  context.fillRect(0, 0, width, height);
-  context.drawImage(elements.presentation, (width - drawWidth) / 2, (height - drawHeight) / 2, drawWidth, drawHeight);
-  const stageRect = elements.stage.getBoundingClientRect();
-  const visibleCaptions = [elements.sourceCaption, elements.targetCaption]
-    .filter((caption) => caption.classList.contains('visible') && getComputedStyle(caption).display !== 'none')
-    .map((caption) => caption.getBoundingClientRect());
-  const captionRect = visibleCaptions.length ? {
-    left: Math.min(...visibleCaptions.map((rect) => rect.left)),
-    top: Math.min(...visibleCaptions.map((rect) => rect.top)),
-    right: Math.max(...visibleCaptions.map((rect) => rect.right)),
-    bottom: Math.max(...visibleCaptions.map((rect) => rect.bottom))
-  } : { left: stageRect.left + stageRect.width * .15, top: stageRect.top + stageRect.height * .68, right: stageRect.right - stageRect.width * .15, bottom: stageRect.bottom - 70 };
-  const x = Math.max(0, Math.floor((captionRect.left - stageRect.left) / stageRect.width * width));
-  const y = Math.max(0, Math.floor((captionRect.top - stageRect.top) / stageRect.height * height));
-  const sampleWidth = Math.max(1, Math.min(width - x, Math.ceil((captionRect.right - captionRect.left) / stageRect.width * width)));
-  const sampleHeight = Math.max(1, Math.min(height - y, Math.ceil((captionRect.bottom - captionRect.top) / stageRect.height * height)));
-  const sample = context.getImageData(x, y, sampleWidth, sampleHeight);
-  applyTheme(chooseCaptionTheme(sample));
+function renderTranscript() {
+  elements.transcriptList.replaceChildren();
+  if (!state.transcript.length) {
+    elements.transcriptList.append(elements.transcriptEmpty);
+  } else {
+    for (const entry of state.transcript) {
+      const row = document.createElement('article');
+      row.className = 'transcript-row';
+      const time = document.createElement('time');
+      time.className = 'row-time';
+      time.dateTime = entry.time;
+      time.textContent = new Date(entry.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const source = document.createElement('p');
+      source.className = 'row-source';
+      source.textContent = entry.source;
+      const target = document.createElement('p');
+      target.className = `row-target${entry.translation ? '' : ' pending'}`;
+      target.textContent = entry.translation || 'Translating…';
+      row.append(time, source, target);
+      elements.transcriptList.append(row);
+    }
+    elements.transcriptList.scrollTop = elements.transcriptList.scrollHeight;
+  }
+  const count = state.transcript.length;
+  elements.entryCount.textContent = `${count} ${count === 1 ? 'phrase' : 'phrases'}`;
 }
 
 function downloadTranscript() {
-  if (!state.transcript.length) { setStatus('There is no transcript to download', state.running); return; }
-  const lines = ['IBG ASSEMBLY TRANSCRIPT', new Date().toLocaleString(), ''];
-  for (const entry of state.transcript) {
-    lines.push(`[${new Date(entry.time).toLocaleTimeString()}] ${entry.source}`, entry.translation, '');
-  }
+  if (!state.transcript.length) { setStatus('There is no transcript to download', 'warning'); return; }
+  const lines = ['IBG ASSEMBLY TRANSCRIPT', new Date().toLocaleString(), `${LANGUAGE_NAMES[sourceCode()]} → ${LANGUAGE_NAMES[settings.targetLanguage]}`, ''];
+  for (const entry of state.transcript) lines.push(`[${new Date(entry.time).toLocaleTimeString()}] ${entry.source}`, entry.translation, '');
   const url = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' }));
   const link = Object.assign(document.createElement('a'), { href: url, download: `ibg-transcript-${new Date().toISOString().slice(0, 10)}.txt` });
   link.click();
   window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
-function showUiTemporarily() {
-  document.body.classList.remove('ui-idle');
-  clearTimeout(state.uiTimer);
-  if (state.presentation && !elements.dialog.open) state.uiTimer = window.setTimeout(() => document.body.classList.add('ui-idle'), 2800);
-}
-
+elements.overlay.addEventListener('click', openOverlay);
 elements.start.addEventListener('click', startSubtitles);
 elements.stop.addEventListener('click', stopSubtitles);
-elements.share.addEventListener('click', sharePresentation);
-elements.emptyShare.addEventListener('click', sharePresentation);
-elements.fullscreen.addEventListener('click', () => document.fullscreenElement ? document.exitFullscreen() : elements.stage.requestFullscreen());
-elements.settings.addEventListener('click', () => { elements.dialog.showModal(); elements.settings.setAttribute('aria-expanded', 'true'); });
-elements.dialog.addEventListener('close', () => { elements.settings.setAttribute('aria-expanded', 'false'); showUiTemporarily(); });
 elements.sourceLanguage.addEventListener('change', () => {
   settings.sourceLanguage = elements.sourceLanguage.value;
-  settings.targetLanguage = languageCode(settings.sourceLanguage) === 'en' ? 'da' : 'en';
-  persistSettings(); applySettings(); restartForLanguageChange();
+  settings.targetLanguage = sourceCode() === 'en' ? 'da' : 'en';
+  saveSettings(); applySettings(); restartRecognition(); renderTranscript();
 });
-elements.targetLanguage.addEventListener('change', () => { settings.targetLanguage = elements.targetLanguage.value; persistSettings(); });
-elements.fontSize.addEventListener('input', () => { settings.fontSize = Number(elements.fontSize.value); persistSettings(); applySettings(); });
-elements.scrim.addEventListener('input', () => { settings.scrim = Number(elements.scrim.value); persistSettings(); applySettings(); });
-elements.showSource.addEventListener('change', () => { settings.showSource = elements.showSource.checked; persistSettings(); applySettings(); });
-elements.adaptive.addEventListener('change', () => { settings.adaptive = elements.adaptive.checked; persistSettings(); applySettings(); });
+elements.targetLanguage.addEventListener('change', () => { settings.targetLanguage = elements.targetLanguage.value; saveSettings(); applySettings(); });
+elements.fontSize.addEventListener('input', () => { settings.fontSize = Number(elements.fontSize.value); saveSettings(); applySettings(); });
+elements.showSource.addEventListener('change', () => { settings.showSource = elements.showSource.checked; saveSettings(); applySettings(); });
 elements.download.addEventListener('click', downloadTranscript);
-elements.clear.addEventListener('click', () => { state.transcript = []; showCaption(elements.sourceCaption, ''); showCaption(elements.targetCaption, ''); setStatus('Transcript cleared', state.running); });
-document.addEventListener('mousemove', showUiTemporarily, { passive: true });
-document.addEventListener('keydown', (event) => {
-  showUiTemporarily();
-  if (event.key === 'Escape' || /input|select/i.test(event.target.tagName)) return;
-  if (event.code === 'Space') { event.preventDefault(); state.running ? stopSubtitles() : startSubtitles(); }
-  if (event.key.toLowerCase() === 'f') elements.fullscreen.click();
+elements.clear.addEventListener('click', () => {
+  if (state.transcript.length && !confirm('Clear the complete assembly transcript?')) return;
+  state.transcript = []; saveTranscript(); renderTranscript(); setCurrentCaptions('', ''); setStatus('Transcript cleared');
 });
-window.addEventListener('beforeunload', () => { stopSubtitles(); stopPresentation(); });
-window.setInterval(samplePresentationColour, 450);
+window.addEventListener('beforeunload', stopSubtitles);
 
 applySettings();
+renderTranscript();
 if (new URLSearchParams(location.search).has('demo')) {
-  showCaption(elements.sourceCaption, 'Welcome to today’s assembly');
-  showCaption(elements.targetCaption, 'Velkommen til dagens fællessamling');
+  state.transcript = [
+    { id: 'demo-1', time: new Date(Date.now() - 60000).toISOString(), source: 'Good morning and welcome to today’s assembly.', translation: 'Godmorgen og velkommen til dagens fællessamling.' },
+    { id: 'demo-2', time: new Date().toISOString(), source: 'We will begin with this week’s announcements.', translation: 'Vi begynder med denne uges meddelelser.' }
+  ];
+  renderTranscript();
+  setCurrentCaptions(state.transcript[1].source, state.transcript[1].translation);
 }
-if (!window.isSecureContext) setStatus('Open over HTTPS or localhost to use microphone and screen sharing', false);
-else if (!speechRecognitionConstructor()) setStatus('Use Chrome or Edge for live speech recognition', false);
+if (!window.isSecureContext) setStatus('Open over HTTPS to use microphone and subtitle window', 'warning');
+else if (!speechRecognitionConstructor()) setStatus('Use current desktop Chrome or Edge', 'warning');
+else if (!overlaySupported()) setStatus('Update Chrome or Edge for always-on-top subtitles', 'warning');

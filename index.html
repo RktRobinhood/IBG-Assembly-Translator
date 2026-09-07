@@ -3,81 +3,104 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#09090b">
-  <title>IBG Live Translator</title>
+  <meta name="theme-color" content="#f4f6f5">
+  <title>IBG Assembly Translator</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <main id="stage" aria-label="Presentation with live subtitles">
-    <video id="presentation" autoplay muted playsinline></video>
-    <div id="empty-state">
-      <div class="school-mark">IBG</div>
-      <h1>Live assembly subtitles</h1>
-      <p>Share a PowerPoint window, screen, video, or any other visual. Captions stay readable automatically.</p>
-      <button class="primary" id="empty-share">Share presentation</button>
+  <header class="app-header">
+    <a class="brand" href="./" aria-label="IBG Assembly Translator home">
+      <span class="brand-mark">IBG</span>
+      <span><strong>Assembly Translator</strong><small>Operator console</small></span>
+    </a>
+    <div class="session-status" role="status">
+      <span class="status-dot" id="status-dot"></span>
+      <span id="status">Ready for setup</span>
     </div>
+    <div class="header-actions">
+      <button id="overlay-button" class="button button-secondary">Open subtitle window</button>
+      <button id="start-button" class="button button-primary">Start listening</button>
+      <button id="stop-button" class="button button-danger" disabled>Stop</button>
+    </div>
+  </header>
 
-    <section id="captions" class="caption-theme-dark" aria-live="polite" aria-atomic="true">
-      <div class="caption language-source" id="source-caption"></div>
-      <div class="caption language-target" id="target-caption"></div>
-    </section>
+  <main class="workspace">
+    <aside class="control-panel" aria-label="Assembly controls">
+      <section class="panel-section workflow-card">
+        <p class="eyebrow">Assembly checklist</p>
+        <h1>Three steps to go live</h1>
+        <ol class="steps">
+          <li><span>1</span><div><strong>Open subtitle window</strong><small>Resize it and place it over PowerPoint.</small></div></li>
+          <li><span>2</span><div><strong>Start listening</strong><small>Allow microphone access when asked.</small></div></li>
+          <li><span>3</span><div><strong>Present normally</strong><small>The subtitle window stays above other apps.</small></div></li>
+        </ol>
+      </section>
 
-    <header id="topbar">
-      <div class="brand"><span class="live-dot" id="live-dot"></span> IBG Live Translator</div>
-      <div id="status" role="status">Ready</div>
-    </header>
-
-    <nav id="controls" aria-label="Subtitle controls">
-      <button class="primary" id="start-button">Start subtitles</button>
-      <button id="stop-button" disabled>Stop</button>
-      <button id="share-button">Share presentation</button>
-      <button id="fullscreen-button">Fullscreen</button>
-      <button id="settings-button" aria-expanded="false">Settings</button>
-    </nav>
-  </main>
-
-  <dialog id="settings-dialog">
-    <form method="dialog">
-      <div class="dialog-heading">
-        <div>
-          <p class="eyebrow">Subtitle setup</p>
-          <h2>Settings</h2>
+      <section class="panel-section">
+        <div class="section-heading">
+          <div><p class="eyebrow">Translation</p><h2>Languages</h2></div>
+          <span class="direction" id="direction-label">EN → DA</span>
         </div>
-        <button value="close" aria-label="Close settings">Close</button>
-      </div>
-
-      <div class="settings-grid">
-        <label>Spoken language
+        <label class="field">Spoken language
           <select id="source-language">
             <option value="en-US">English</option>
             <option value="da-DK">Dansk</option>
           </select>
         </label>
-        <label>Translation language
+        <label class="field">Translate into
           <select id="target-language">
             <option value="da">Dansk</option>
             <option value="en">English</option>
           </select>
         </label>
-        <label>Caption size <output id="font-size-value">52 px</output>
-          <input id="font-size" type="range" min="28" max="88" step="2" value="52">
+      </section>
+
+      <section class="panel-section">
+        <div class="section-heading"><div><p class="eyebrow">Display</p><h2>Subtitles</h2></div></div>
+        <label class="field range-field">Text size <output id="font-size-value">48 px</output>
+          <input id="font-size" type="range" min="30" max="72" step="2" value="48">
         </label>
-        <label>Caption background <output id="scrim-value">56%</output>
-          <input id="scrim" type="range" min="18" max="85" step="1" value="56">
-        </label>
-        <label class="check-row"><input id="show-source" type="checkbox" checked> Show original speech</label>
-        <label class="check-row"><input id="adaptive-colour" type="checkbox" checked> Auto-adjust caption colour</label>
+        <label class="check-field"><input id="show-source" type="checkbox" checked> Show spoken language above translation</label>
+      </section>
+
+      <section class="panel-section utility-actions">
+        <button id="download-button" class="button button-secondary">Download transcript</button>
+        <button id="clear-button" class="button button-quiet">Clear transcript</button>
+      </section>
+
+      <p class="browser-note">Requires current desktop Chrome or Edge. Keep this operator console open while presenting.</p>
+    </aside>
+
+    <section class="transcript-panel" aria-labelledby="transcript-heading">
+      <header class="transcript-header">
+        <div>
+          <p class="eyebrow">Live record</p>
+          <h2 id="transcript-heading">Bilingual transcript</h2>
+        </div>
+        <span class="entry-count" id="entry-count">0 phrases</span>
+      </header>
+
+      <div class="column-labels" aria-hidden="true">
+        <span id="source-column-label">English</span>
+        <span id="target-column-label">Dansk</span>
       </div>
 
-      <div class="dialog-actions">
-        <button type="button" id="download-button">Download transcript</button>
-        <button type="button" id="clear-button">Clear transcript</button>
+      <div class="transcript-list" id="transcript-list">
+        <div class="transcript-empty" id="transcript-empty">
+          <div class="empty-icon" aria-hidden="true">Aa</div>
+          <h3>Your live transcript will appear here</h3>
+          <p>Completed phrases are kept in both languages and can be downloaded after the assembly.</p>
+        </div>
       </div>
-      <p class="privacy-note">Audio stays in the browser's speech-recognition service. Translation is sent to the configured translation service.</p>
-    </form>
-  </dialog>
 
-  <canvas id="sampler" width="96" height="54" hidden></canvas>
+      <section class="live-preview" aria-label="Current live subtitle" aria-live="polite" aria-atomic="true">
+        <div class="preview-state"><span class="preview-dot"></span>Current subtitle</div>
+        <p class="preview-source" id="source-caption">Waiting for speech…</p>
+        <p class="preview-target" id="target-caption">Translation will appear here</p>
+      </section>
+    </section>
+  </main>
+
   <script type="module" src="app.js"></script>
 </body>
 </html>

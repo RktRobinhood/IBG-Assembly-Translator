@@ -1,43 +1,43 @@
-# IBG Live Translator
+# IBG Assembly Translator
 
-Live English ↔ Danish assembly subtitles that can sit over any visual content. The app runs as a static website in Chrome or Edge—no Rust build or local installation is required.
+A practical operator console for live English ↔ Danish school-assembly subtitles.
 
-## What changed
+## Assembly workflow
 
-- Speech is shown immediately from interim recognition results.
-- Interim phrases are translated continuously instead of waiting for a completed sentence.
-- A shared PowerPoint window, screen, PDF, or video becomes the full-screen presentation background.
-- The area behind the captions is sampled several times per second. Captions switch between dark-on-light and light-on-dark, with an outline and adjustable translucent background.
-- Controls disappear automatically during a presentation and return when the mouse moves.
-- Font size, original-language visibility, colour adjustment, and the caption background are configurable.
-- The bilingual transcript can be downloaded after the assembly.
+1. Open the [live site](https://rktrobinhood.github.io/IBG-Assembly-Translator/) in a current desktop version of Chrome or Edge.
+2. Select **Open subtitle window**. A compact Picture-in-Picture window opens and remains above PowerPoint, video, browser tabs, and other applications.
+3. Resize the subtitle window, place it along the bottom of the projector display, and leave it there.
+4. Select **Start listening** and allow microphone access.
+5. Run PowerPoint normally. Keep the operator console open in the background.
 
-## Use it
+The main console retains the bilingual transcript throughout the assembly. The subtitle window has a solid, high-contrast surface, so it remains readable regardless of the slide behind it. It deliberately does not capture or duplicate the presentation.
 
-1. Open the GitHub Pages URL in **Chrome or Edge**. Microphone and screen capture require HTTPS (or localhost during development).
-2. Select **Share presentation** and choose the PowerPoint *window* or another source. Do not select this browser tab, or it will create a hall-of-mirrors effect.
-3. Select **Start subtitles** and allow microphone access.
-4. Use **Fullscreen**. Move the mouse whenever you need the controls again.
-5. Choose English or Danish under **Settings**. The translation direction updates automatically.
+## Browser and service requirements
 
-Speech recognition is supplied by the browser. Translation uses the public MyMemory service, which needs internet access and may enforce usage limits. Chrome's experimental built-in Translator is deliberately not enabled because its language-model process can crash on otherwise supported systems. This keeps the project stable and deployable as a static GitHub Pages site without exposing an API key.
+- Desktop Chrome 116+ or a current Chromium-based Edge release is required for Document Picture-in-Picture.
+- The page must be served over HTTPS (GitHub Pages provides this).
+- Speech recognition and translation require internet access.
+- Translation uses the public MyMemory service, which may enforce usage limits. Chrome's experimental built-in Translator is disabled because its language-model process can crash on otherwise supported systems.
 
-## Run locally
+## Operator features
+
+- Always-on-top subtitle window for PowerPoint and other applications
+- Immediate display of interim speech
+- English → Danish and Danish → English modes
+- Persistent bilingual transcript with timestamps
+- Downloadable plain-text assembly transcript
+- Adjustable subtitle size and optional original-language line
+- Session state survives an accidental page refresh
+
+## Run and test locally
 
 ```powershell
 npm start
-```
-
-Then open the printed localhost URL in Chrome or Edge.
-
-To see the caption layout without using a microphone, add `?demo=1` to the URL.
-
-## Test
-
-```powershell
 npm test
 ```
 
+Add `?demo=1` to the URL to inspect the complete operator layout without microphone access.
+
 ## GitHub Pages
 
-The repository is already published at [rktrobinhood.github.io/IBG-Assembly-Translator](https://rktrobinhood.github.io/IBG-Assembly-Translator/). It uses only static HTML, CSS, and JavaScript, and all asset paths are relative so they work beneath the `/IBG-Assembly-Translator/` project path. Push `main` to update the existing Pages deployment.
+The project uses only static HTML, CSS, and JavaScript. All asset paths are repository-relative and covered by static hosting tests. Pushes to `main` update the existing branch-based Pages deployment.

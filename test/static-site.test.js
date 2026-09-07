@@ -27,3 +27,13 @@ test('JavaScript module imports are repository-relative and resolvable', async (
     await access(resolve(projectRoot, modulePath));
   }
 });
+
+test('assembly UI uses an always-on-top subtitle window instead of presentation capture', async () => {
+  const app = await readFile(resolve(projectRoot, 'app.js'), 'utf8');
+  const html = await readFile(resolve(projectRoot, 'index.html'), 'utf8');
+
+  assert.match(app, /documentPictureInPicture\.requestWindow/);
+  assert.doesNotMatch(app, /getDisplayMedia/);
+  assert.match(html, /Bilingual transcript/);
+  assert.match(html, /Open subtitle window/);
+});

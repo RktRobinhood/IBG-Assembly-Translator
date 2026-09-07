@@ -37,3 +37,7 @@ To see the caption layout without using a microphone, add `?demo=1` to the URL.
 ```powershell
 npm test
 ```
+
+## GitHub Pages
+
+The repository is already published at [rktrobinhood.github.io/IBG-Assembly-Translator](https://rktrobinhood.github.io/IBG-Assembly-Translator/). It uses only static HTML, CSS, and JavaScript, and all asset paths are relative so they work beneath the `/IBG-Assembly-Translator/` project path. Push `main` to update the existing Pages deployment.

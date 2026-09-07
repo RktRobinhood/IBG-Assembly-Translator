@@ -1,0 +1,10 @@
+{
+  "name": "ibg-assembly-translator",
+  "private": true,
+  "version": "3.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "npx --yes serve .",
+    "test": "node --test"
+  }
+}

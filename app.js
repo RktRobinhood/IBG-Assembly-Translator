@@ -1,10 +1,13 @@
 import { TranslationClient, languageCode } from './translator.js';
+import { LocalTranslationClient } from './local-translator.js';
+import { TranslationCoordinator } from './translation-coordinator.js';
 
 const $ = (id) => document.getElementById(id);
 const elements = {
   status: $('status'), statusDot: $('status-dot'), overlay: $('overlay-button'), start: $('start-button'), stop: $('stop-button'),
   sourceLanguage: $('source-language'), targetLanguage: $('target-language'), direction: $('direction-label'),
   sourceColumn: $('source-column-label'), targetColumn: $('target-column-label'), fontSize: $('font-size'),
+  prepare: $('prepare-button'), modelStatus: $('model-status'),
   fontSizeValue: $('font-size-value'), showSource: $('show-source'), download: $('download-button'), clear: $('clear-button'),
   transcriptList: $('transcript-list'), transcriptEmpty: $('transcript-empty'), entryCount: $('entry-count'),
   sourceCaption: $('source-caption'), targetCaption: $('target-caption')
@@ -13,12 +16,18 @@ const elements = {
 const LANGUAGE_NAMES = { en: 'English', da: 'Dansk' };
 const DEFAULT_SETTINGS = { sourceLanguage: 'en-US', targetLanguage: 'da', fontSize: 48, showSource: true };
 const translator = new TranslationClient();
+const localTranslator = new LocalTranslationClient();
 const state = {
   running: false, recognition: null, microphone: null, overlayWindow: null, transcript: loadTranscript(),
-  draftTimer: null, draftBusy: false, draftQueued: '', draftRequest: null, finalRequests: new Set(),
-  translationSequence: 0, lastDraft: '', currentSource: '', currentTarget: ''
+  currentSource: '', currentTarget: ''
 };
 let settings = loadSettings();
+const translationCoordinator = new TranslationCoordinator({
+  translate: (text, signal) => translateText(text, signal),
+  onDraft: (source, translation) => setCurrentCaptions(source, translation),
+  onError: () => setStatus('Listening · translation service delayed', 'warning'),
+  isActive: () => state.running
+});
 
 function loadSettings() {
   try { return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem('ibg-console-settings') || '{}') }; }
@@ -34,6 +43,8 @@ function saveSettings() { localStorage.setItem('ibg-console-settings', JSON.stri
 function saveTranscript() { localStorage.setItem('ibg-assembly-transcript', JSON.stringify(state.transcript.slice(-500))); }
 
 function sourceCode() { return languageCode(settings.sourceLanguage); }
+function hasOverlay() { return Boolean(state.overlayWindow && !state.overlayWindow.closed); }
+function updateListeningStatus() { setStatus(hasOverlay() ? 'Listening · subtitles visible' : 'Listening · open subtitle window', hasOverlay() ? 'live' : 'warning'); }
 function setStatus(message, tone = state.running ? 'live' : '') {
   elements.status.textContent = message;
   elements.statusDot.className = `status-dot ${tone}`.trim();
@@ -72,7 +83,7 @@ async function openOverlay() {
     return;
   }
   try {
-    const pipWindow = await documentPictureInPicture.requestWindow({ width: 960, height: 260, preferInitialWindowPlacement: true });
+    const pipWindow = await documentPictureInPicture.requestWindow({ width: 820, height: 210, preferInitialWindowPlacement: true });
     state.overlayWindow = pipWindow;
     pipWindow.document.title = 'IBG Live Subtitles';
     const style = pipWindow.document.createElement('style');
@@ -90,7 +101,7 @@ async function openOverlay() {
     elements.overlay.textContent = 'Focus subtitle window';
     updateOverlayAppearance();
     renderOverlayCaptions();
-    setStatus(state.running ? 'Listening · subtitles visible' : 'Subtitle window ready', state.running ? 'live' : '');
+    state.running ? updateListeningStatus() : setStatus('Subtitle window ready');
   } catch (error) {
     if (error.name !== 'NotAllowedError') setStatus(`Could not open subtitle window: ${error.message}`, 'warning');
   }
@@ -150,7 +161,7 @@ async function startSubtitles() {
   elements.start.disabled = true;
   elements.stop.disabled = false;
   createRecognition(SpeechRecognition);
-  setStatus(state.overlayWindow ? 'Listening · subtitles visible' : 'Listening · open subtitle window', state.overlayWindow ? 'live' : 'warning');
+  updateListeningStatus();
 }
 
 function createRecognition(SpeechRecognition = speechRecognitionConstructor()) {
@@ -190,53 +201,25 @@ function handleSpeechResult(event) {
 }
 
 function scheduleDraftTranslation(text) {
-  if (text.length < 3 || text === state.lastDraft) return;
-  state.lastDraft = text;
-  state.draftQueued = text;
-  if (state.draftTimer || state.draftBusy) return;
-  state.draftTimer = window.setTimeout(runDraftTranslation, 450);
-}
-
-async function runDraftTranslation() {
-  state.draftTimer = null;
-  state.draftBusy = true;
-  const text = state.draftQueued;
-  state.draftRequest = new AbortController();
-  const sequence = ++state.translationSequence;
-  try {
-    const translated = await translator.translate(text, sourceCode(), settings.targetLanguage, state.draftRequest.signal);
-    if (sequence === state.translationSequence) setCurrentCaptions(text, translated);
-  } catch (error) {
-    if (error.name !== 'AbortError') setStatus('Listening · translation service delayed', 'warning');
-  } finally {
-    state.draftBusy = false;
-    if (state.running && state.draftQueued !== text) state.draftTimer = window.setTimeout(runDraftTranslation, 350);
-  }
+  translationCoordinator.scheduleDraft(text);
 }
 
 async function commitFinalPhrase(text) {
-  clearTimeout(state.draftTimer);
-  state.draftTimer = null;
-  state.draftRequest?.abort();
-  const sequence = ++state.translationSequence;
   setCurrentCaptions(text, 'Translating…');
   const entry = { id: crypto.randomUUID(), time: new Date().toISOString(), source: text, translation: '' };
   state.transcript.push(entry);
   saveTranscript();
   renderTranscript();
-  const request = new AbortController();
-  state.finalRequests.add(request);
   try {
-    entry.translation = await translator.translate(text, sourceCode(), settings.targetLanguage, request.signal);
-    if (sequence === state.translationSequence) setCurrentCaptions(text, entry.translation);
-    if (state.running) setStatus(state.overlayWindow ? 'Listening · subtitles visible' : 'Listening · open subtitle window', state.overlayWindow ? 'live' : 'warning');
+    const result = await translationCoordinator.translateFinal(text);
+    entry.translation = result.translation;
+    if (result.isCurrent) setCurrentCaptions(text, entry.translation);
+    if (state.running) updateListeningStatus();
   } catch (error) {
-    if (request.signal.aborted) return;
     entry.translation = 'Translation unavailable';
-    if (sequence === state.translationSequence) setCurrentCaptions(text, entry.translation);
+    if (error.isCurrent) setCurrentCaptions(text, entry.translation);
     if (state.running) setStatus(`Listening · ${error.message}`, 'warning');
   } finally {
-    state.finalRequests.delete(request);
     saveTranscript();
     renderTranscript();
   }
@@ -248,15 +231,41 @@ function stopSubtitles() {
   state.recognition = null;
   state.microphone?.getTracks().forEach((track) => track.stop());
   state.microphone = null;
-  clearTimeout(state.draftTimer);
-  state.draftTimer = null;
-  state.draftRequest?.abort();
-  state.finalRequests.forEach((request) => request.abort());
-  state.finalRequests.clear();
-  state.translationSequence += 1;
+  translationCoordinator.stopDrafts();
   elements.start.disabled = false;
   elements.stop.disabled = true;
   setStatus('Stopped');
+}
+
+function translateText(text, signal) {
+  if (localTranslator.readyFor(sourceCode(), settings.targetLanguage)) {
+    return localTranslator.translate(text, sourceCode(), settings.targetLanguage, signal);
+  }
+  return translator.translate(text, sourceCode(), settings.targetLanguage, signal);
+}
+
+async function prepareLocalTranslation() {
+  elements.prepare.disabled = true;
+  elements.modelStatus.textContent = 'Starting model download…';
+  try {
+    await localTranslator.prepare(sourceCode(), settings.targetLanguage, (message) => { elements.modelStatus.textContent = message; });
+    elements.prepare.textContent = 'Local translation ready';
+    elements.prepare.parentElement.classList.add('ready');
+    elements.modelStatus.textContent = 'Ready · translation now runs locally without quotas';
+    setStatus('Local translation ready');
+  } catch (error) {
+    elements.prepare.disabled = false;
+    elements.modelStatus.textContent = `Could not prepare model · ${error.message}`;
+    setStatus('Using online translation fallback', 'warning');
+  }
+}
+
+function resetLocalTranslation() {
+  localTranslator.close();
+  elements.prepare.disabled = false;
+  elements.prepare.textContent = 'Prepare local translation';
+  elements.prepare.parentElement.classList.remove('ready');
+  elements.modelStatus.textContent = 'Recommended before the assembly · one-time model download';
 }
 
 function restartRecognition() {
@@ -307,12 +316,13 @@ function downloadTranscript() {
 elements.overlay.addEventListener('click', openOverlay);
 elements.start.addEventListener('click', startSubtitles);
 elements.stop.addEventListener('click', stopSubtitles);
+elements.prepare.addEventListener('click', prepareLocalTranslation);
 elements.sourceLanguage.addEventListener('change', () => {
   settings.sourceLanguage = elements.sourceLanguage.value;
   settings.targetLanguage = sourceCode() === 'en' ? 'da' : 'en';
-  saveSettings(); applySettings(); restartRecognition(); renderTranscript();
+  resetLocalTranslation(); saveSettings(); applySettings(); restartRecognition(); renderTranscript();
 });
-elements.targetLanguage.addEventListener('change', () => { settings.targetLanguage = elements.targetLanguage.value; saveSettings(); applySettings(); });
+elements.targetLanguage.addEventListener('change', () => { settings.targetLanguage = elements.targetLanguage.value; resetLocalTranslation(); saveSettings(); applySettings(); });
 elements.fontSize.addEventListener('input', () => { settings.fontSize = Number(elements.fontSize.value); saveSettings(); applySettings(); });
 elements.showSource.addEventListener('change', () => { settings.showSource = elements.showSource.checked; saveSettings(); applySettings(); });
 elements.download.addEventListener('click', downloadTranscript);

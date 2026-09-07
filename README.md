@@ -7,8 +7,9 @@ A practical operator console for live English ↔ Danish school-assembly subtitl
 1. Open the [live site](https://rktrobinhood.github.io/IBG-Assembly-Translator/) in a current desktop version of Chrome or Edge.
 2. Select **Open subtitle window**. A compact Picture-in-Picture window opens and remains above PowerPoint, video, browser tabs, and other applications.
 3. Resize the subtitle window, place it along the bottom of the projector display, and leave it there.
-4. Select **Start listening** and allow microphone access.
-5. Run PowerPoint normally. Keep the operator console open in the background.
+4. Before the event, select **Prepare local translation** once and wait for the model to report ready. The model is cached by the browser.
+5. Select **Start listening** and allow microphone access.
+6. Run PowerPoint normally. Keep the operator console open in the background.
 
 The main console retains the bilingual transcript throughout the assembly. The subtitle window has a solid, high-contrast surface, so it remains readable regardless of the slide behind it. It deliberately does not capture or duplicate the presentation.
 
@@ -16,8 +17,9 @@ The main console retains the bilingual transcript throughout the assembly. The s
 
 - Desktop Chrome 116+ or a current Chromium-based Edge release is required for Document Picture-in-Picture.
 - The page must be served over HTTPS (GitHub Pages provides this).
-- Speech recognition and translation require internet access.
-- Translation uses the public MyMemory service, which may enforce usage limits. Chrome's experimental built-in Translator is disabled because its language-model process can crash on otherwise supported systems.
+- Speech recognition requires internet access.
+- Prepared translation runs locally in the browser using a cached English/Danish model. The first model download is approximately 100 MB per direction and requires internet access.
+- Until the local model is ready, the public MyMemory service is used as a quick-start fallback and may enforce usage limits. Chrome's experimental built-in Translator remains disabled because its language-model process can crash on otherwise supported systems.
 
 ## Operator features
 

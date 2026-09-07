@@ -16,7 +16,7 @@ const elements = {
 const DEFAULT_SETTINGS = { sourceLanguage: 'en-US', targetLanguage: 'da', fontSize: 52, scrim: 56, showSource: true, adaptive: true };
 const state = {
   running: false, recognition: null, microphone: null, presentation: null, transcript: [],
-  draftTimer: null, draftRequest: null, draftQueued: '', draftBusy: false,
+  draftTimer: null, draftRequest: null, finalRequests: new Set(), draftQueued: '', draftBusy: false,
   translationSequence: 0, lastDraft: '', theme: 'dark', uiTimer: null
 };
 const translator = new TranslationClient();
@@ -33,6 +33,7 @@ function showCaption(element, text) {
 }
 
 function applySettings() {
+  settings.scrim = Math.max(18, Number(settings.scrim) || DEFAULT_SETTINGS.scrim);
   elements.sourceLanguage.value = settings.sourceLanguage;
   elements.targetLanguage.value = settings.targetLanguage;
   elements.fontSize.value = settings.fontSize;
@@ -51,7 +52,7 @@ function applyTheme(theme) {
   const visibleTheme = settings.adaptive ? theme : 'dark';
   elements.captions.classList.toggle('caption-theme-light', visibleTheme === 'light');
   elements.captions.classList.toggle('caption-theme-dark', visibleTheme !== 'light');
-  const alpha = settings.scrim / 100;
+  const alpha = Math.max(.18, settings.scrim / 100);
   const scrim = visibleTheme === 'light' ? `rgba(255,255,255,${Math.min(.88, alpha + .12)})` : `rgba(0,0,0,${alpha})`;
   document.documentElement.style.setProperty('--caption-scrim', scrim);
 }
@@ -187,15 +188,20 @@ async function commitFinalPhrase(text) {
   setStatus('Translating…');
   const entry = { time: new Date().toISOString(), source: text, translation: '' };
   state.transcript.push(entry);
+  const request = new AbortController();
+  state.finalRequests.add(request);
   try {
-    const translated = await translator.translate(text, languageCode(settings.sourceLanguage), settings.targetLanguage);
+    const translated = await translator.translate(text, languageCode(settings.sourceLanguage), settings.targetLanguage, request.signal);
     entry.translation = translated;
     if (sequence === state.translationSequence) showCaption(elements.targetCaption, translated);
-    setStatus('Listening…');
+    if (state.running) setStatus('Listening…');
   } catch (error) {
+    if (request.signal.aborted) return;
     entry.translation = '[translation unavailable]';
     if (sequence === state.translationSequence) showCaption(elements.targetCaption, 'Translation unavailable');
-    setStatus(`Listening · ${error.message}`);
+    if (state.running) setStatus(`Listening · ${error.message}`);
+  } finally {
+    state.finalRequests.delete(request);
   }
 }
 
@@ -207,6 +213,9 @@ function stopSubtitles() {
   state.microphone = null;
   clearTimeout(state.draftTimer);
   state.draftRequest?.abort();
+  state.finalRequests.forEach((request) => request.abort());
+  state.finalRequests.clear();
+  state.translationSequence += 1;
   elements.start.disabled = false;
   elements.stop.disabled = true;
   setStatus('Stopped', false);
@@ -234,7 +243,21 @@ function samplePresentationColour() {
   context.fillStyle = '#000';
   context.fillRect(0, 0, width, height);
   context.drawImage(elements.presentation, (width - drawWidth) / 2, (height - drawHeight) / 2, drawWidth, drawHeight);
-  const sample = context.getImageData(0, Math.floor(height * .62), width, Math.ceil(height * .38));
+  const stageRect = elements.stage.getBoundingClientRect();
+  const visibleCaptions = [elements.sourceCaption, elements.targetCaption]
+    .filter((caption) => caption.classList.contains('visible') && getComputedStyle(caption).display !== 'none')
+    .map((caption) => caption.getBoundingClientRect());
+  const captionRect = visibleCaptions.length ? {
+    left: Math.min(...visibleCaptions.map((rect) => rect.left)),
+    top: Math.min(...visibleCaptions.map((rect) => rect.top)),
+    right: Math.max(...visibleCaptions.map((rect) => rect.right)),
+    bottom: Math.max(...visibleCaptions.map((rect) => rect.bottom))
+  } : { left: stageRect.left + stageRect.width * .15, top: stageRect.top + stageRect.height * .68, right: stageRect.right - stageRect.width * .15, bottom: stageRect.bottom - 70 };
+  const x = Math.max(0, Math.floor((captionRect.left - stageRect.left) / stageRect.width * width));
+  const y = Math.max(0, Math.floor((captionRect.top - stageRect.top) / stageRect.height * height));
+  const sampleWidth = Math.max(1, Math.min(width - x, Math.ceil((captionRect.right - captionRect.left) / stageRect.width * width)));
+  const sampleHeight = Math.max(1, Math.min(height - y, Math.ceil((captionRect.bottom - captionRect.top) / stageRect.height * height)));
+  const sample = context.getImageData(x, y, sampleWidth, sampleHeight);
   applyTheme(chooseCaptionTheme(sample));
 }
 

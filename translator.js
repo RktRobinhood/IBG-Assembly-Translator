@@ -1,13 +1,14 @@
 const DEFAULT_ENDPOINT = 'https://api.mymemory.translated.net/get';
 
 export class TranslationClient {
-  constructor({ endpoint = DEFAULT_ENDPOINT, fetchImpl = fetch, timeoutMs = 7000, translatorApi = globalThis.Translator } = {}) {
+  constructor({ endpoint = DEFAULT_ENDPOINT, fetchImpl = fetch, timeoutMs = 7000, translatorApi = null } = {}) {
     this.endpoint = endpoint;
     this.fetchImpl = fetchImpl;
     this.timeoutMs = timeoutMs;
     this.cache = new Map();
     this.translatorApi = translatorApi;
     this.nativeTranslators = new Map();
+    this.disabledNativePairs = new Set();
   }
 
   async translate(text, from, to, externalSignal) {
@@ -23,6 +24,9 @@ export class TranslationClient {
         return translated;
       } catch (error) {
         if (externalSignal?.aborted) throw error;
+        const pair = `${from}|${to}`;
+        this.disabledNativePairs.add(pair);
+        this.nativeTranslators.delete(pair);
       }
     }
     const timeout = new AbortController();
@@ -54,6 +58,7 @@ export class TranslationClient {
   async getNativeTranslator(from, to) {
     if (!this.translatorApi) return null;
     const key = `${from}|${to}`;
+    if (this.disabledNativePairs.has(key)) return null;
     if (this.nativeTranslators.has(key)) return this.nativeTranslators.get(key);
     try {
       const availability = await this.translatorApi.availability({ sourceLanguage: from, targetLanguage: to });

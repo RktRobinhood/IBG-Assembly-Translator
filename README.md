@@ -20,7 +20,7 @@ Live English ↔ Danish assembly subtitles that can sit over any visual content.
 4. Use **Fullscreen**. Move the mouse whenever you need the controls again.
 5. Choose English or Danish under **Settings**. The translation direction updates automatically.
 
-Speech recognition is supplied by the browser. On supported Chrome/Edge versions, translation uses the browser's on-device Translator API. If that API or its language pack is unavailable, the app falls back to the public MyMemory service, which needs internet access and may enforce usage limits. This keeps the project deployable as a static GitHub Pages site without exposing an API key.
+Speech recognition is supplied by the browser. Translation uses the public MyMemory service, which needs internet access and may enforce usage limits. Chrome's experimental built-in Translator is deliberately not enabled because its language-model process can crash on otherwise supported systems. This keeps the project stable and deployable as a static GitHub Pages site without exposing an API key.
 
 ## Run locally
 

@@ -32,3 +32,31 @@ test('supported browsers use on-device translation without a network request', a
   assert.equal(await client.translate('Hello', 'en', 'da'), 'local:Hello');
   assert.equal(networkCalls, 0);
 });
+
+test('experimental built-in translation is opt-in', () => {
+  assert.equal(new TranslationClient().translatorApi, null);
+});
+
+test('a crashed built-in translator is disabled after the first failure', async () => {
+  let nativeCalls = 0;
+  let networkCalls = 0;
+  const translatorApi = {
+    availability: async () => 'available',
+    create: async () => ({
+      translate: async () => {
+        nativeCalls += 1;
+        throw new Error('The translation service crashed.');
+      }
+    })
+  };
+  const fetchImpl = async () => {
+    networkCalls += 1;
+    return { ok: true, json: async () => ({ responseStatus: 200, responseData: { translatedText: 'fallback' } }) };
+  };
+  const client = new TranslationClient({ translatorApi, fetchImpl });
+
+  assert.equal(await client.translate('First phrase', 'en', 'da'), 'fallback');
+  assert.equal(await client.translate('Second phrase', 'en', 'da'), 'fallback');
+  assert.equal(nativeCalls, 1, 'the crashed native translator must not be reused');
+  assert.equal(networkCalls, 2);
+});

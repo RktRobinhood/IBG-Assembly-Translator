@@ -53,6 +53,8 @@
             <option value="en">English</option>
           </select>
         </label>
+        <button id="swap-language-button" class="button button-quiet swap-button">Swap direction <span aria-hidden="true">⇄</span></button>
+        <p class="language-note">Press <kbd>L</kbd> to switch instantly when the speaker changes language. Automatic bilingual detection requires the native speech engine.</p>
         <div class="model-setup">
           <button id="prepare-button" class="button button-secondary">Prepare local translation</button>
           <small id="model-status">Recommended before the assembly · one-time model download</small>
@@ -83,6 +85,16 @@
         </div>
         <span class="entry-count" id="entry-count">0 phrases</span>
       </header>
+
+      <div id="native-notice" class="native-notice" role="alert">
+        <div><strong>Native overlay is not connected</strong><span>For dependable subtitles over PowerPoint, run the Windows overlay companion.</span></div>
+        <a class="button button-primary" href="https://github.com/RktRobinhood/IBG-Assembly-Translator/releases/latest/download/IBG-Subtitle-Overlay.exe">Download Windows overlay</a>
+      </div>
+
+      <div id="model-notice" class="model-notice" role="alert">
+        <div><strong>Local translation is not ready</strong><span>Prepare it before the assembly for faster translation without daily limits.</span></div>
+        <button id="notice-prepare-button" class="button button-secondary">Prepare now</button>
+      </div>
 
       <div class="column-labels" aria-hidden="true">
         <span id="source-column-label">English</span>

@@ -61,16 +61,32 @@ h1, h2, h3, p { margin-top: 0; }
 .model-setup { display: grid; gap: 6px; margin-top: 14px; }
 .model-setup small { color: var(--muted); font-size: 10px; line-height: 1.4; }
 .model-setup.ready small { color: var(--green); font-weight: 700; }
+.swap-button { width: 100%; margin-top: 7px; border: 1px dashed #cbd5d1; }
+.language-note { margin: 7px 1px 0; color: var(--muted); font-size: 10px; line-height: 1.4; }
+kbd { padding: 1px 4px; border: 1px solid #cbd5d1; border-radius: 4px; background: #f7f9f8; font: inherit; font-weight: 800; }
 .range-field input { grid-column: 1 / -1; width: 100%; accent-color: var(--green); }
 .check-field { display: flex; gap: 9px; align-items: flex-start; margin-top: 14px; color: #53605c; font-size: 12px; line-height: 1.4; }
 .check-field input { width: 17px; height: 17px; margin: 0; accent-color: var(--green); }
 .utility-actions { display: grid; grid-template-columns: 1fr; gap: 7px; }
 .browser-note { margin: 18px 8px 6px; color: #78837f; font-size: 11px; line-height: 1.5; }
 
-.transcript-panel { min-width: 0; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; padding: 24px 30px 28px; background: var(--paper); }
+.transcript-panel { min-width: 0; display: grid; grid-template-rows: auto auto auto minmax(0, 1fr) auto; padding: 24px 30px 28px; background: var(--paper); }
 .transcript-header { display: flex; align-items: flex-end; justify-content: space-between; padding-bottom: 17px; }
 .transcript-header h2 { margin: 0; font-size: 27px; letter-spacing: -.035em; }
 .entry-count { color: var(--muted); font-size: 12px; }
+.model-notice { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin: 0 0 14px; padding: 12px 14px; border: 1px solid #f0c36a; border-radius: 10px; color: #684600; background: #fff8e8; }
+.model-notice.hidden { display: none; }
+.native-notice { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin: 0 0 10px; padding: 12px 14px; border: 1px solid #e7aaa4; border-radius: 10px; color: #7b2119; background: #fff3f2; }
+.native-notice.hidden { display: none; }
+.native-notice strong, .native-notice span { display: block; }
+.native-notice strong { margin-bottom: 2px; font-size: 12px; }
+.native-notice span { color: #925048; font-size: 11px; }
+.native-notice a { display: inline-grid; place-items: center; flex: 0 0 auto; text-decoration: none; }
+.model-notice.attention { animation: notice-pulse .55s ease 2; }
+.model-notice strong, .model-notice span { display: block; }
+.model-notice strong { margin-bottom: 2px; font-size: 12px; }
+.model-notice span { color: #806323; font-size: 11px; }
+@keyframes notice-pulse { 50% { box-shadow: 0 0 0 5px rgba(232,155,40,.2); } }
 .column-labels { display: grid; grid-template-columns: 74px 1fr 1fr; gap: 18px; padding: 9px 16px 9px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); color: #7c8884; font-size: 10px; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
 .column-labels span:first-child { grid-column: 2; }
 .transcript-list { min-height: 0; overflow-y: auto; scrollbar-gutter: stable; }
@@ -84,6 +100,14 @@ h1, h2, h3, p { margin-top: 0; }
 .row-source { color: #53605c; }
 .row-target { color: var(--ink); font-weight: 650; }
 .row-target.pending { color: #8b9592; font-style: italic; font-weight: 450; }
+.transcript-row { opacity: .7; transition: font-size .25s, opacity .25s, padding .25s; }
+.transcript-row:nth-last-child(3) { opacity: .8; }
+.transcript-row:nth-last-child(2) { padding-block: 18px; opacity: .9; }
+.transcript-row:nth-last-child(2) .row-source { font-size: 15px; }
+.transcript-row:nth-last-child(2) .row-target { font-size: 17px; }
+.transcript-row:last-child { padding-block: 22px; opacity: 1; background: linear-gradient(90deg, transparent, #f2f8f5 12%, #f2f8f5 88%, transparent); }
+.transcript-row:last-child .row-source { font-size: 17px; }
+.transcript-row:last-child .row-target { color: #0b5e49; font-size: 22px; font-weight: 800; line-height: 1.32; letter-spacing: -.015em; }
 
 .live-preview { margin-top: 18px; padding: 15px 18px 17px; border: 1px solid #bcd7ce; border-radius: 12px; background: #f0f8f5; box-shadow: 0 8px 26px rgba(19,67,53,.07); }
 .preview-state { margin-bottom: 7px; color: var(--green); font-size: 10px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }

@@ -37,3 +37,18 @@ test('assembly UI uses an always-on-top subtitle window instead of presentation 
   assert.match(html, /Bilingual transcript/);
   assert.match(html, /Open subtitle window/);
 });
+
+test('model readiness is announced prominently before listening starts', async () => {
+  const html = await readFile(resolve(projectRoot, 'index.html'), 'utf8');
+
+  assert.match(html, /id="model-notice"[^>]+role="alert"/);
+  assert.match(html, /Local translation is not ready/);
+  assert.match(html, /Native overlay is not connected/);
+});
+
+test('recent transcript rows receive a progressively stronger visual hierarchy', async () => {
+  const styles = await readFile(resolve(projectRoot, 'styles.css'), 'utf8');
+
+  assert.match(styles, /\.transcript-row:nth-last-child\(2\)/);
+  assert.match(styles, /\.transcript-row:last-child/);
+});

@@ -5,8 +5,13 @@ const MODELS = {
   'da|en': 'Xenova/opus-mt-da-en'
 };
 let translator = null;
+let work = Promise.resolve();
 
-self.addEventListener('message', async ({ data }) => {
+self.addEventListener('message', ({ data }) => {
+  work = work.then(() => handleMessage(data));
+});
+
+async function handleMessage(data) {
   try {
     if (data.type === 'prepare') {
       const model = MODELS[`${data.from}|${data.to}`];
@@ -33,4 +38,4 @@ self.addEventListener('message', async ({ data }) => {
   } catch (error) {
     self.postMessage({ id: data.id, type: 'error', message: error.message || 'Local translation failed' });
   }
-});
+}

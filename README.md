@@ -4,18 +4,18 @@ A practical operator console for live English ↔ Danish school-assembly subtitl
 
 ## Assembly workflow
 
-1. Open the [live site](https://rktrobinhood.github.io/IBG-Assembly-Translator/) in a current desktop version of Chrome or Edge.
-2. Select **Open subtitle window**. A compact Picture-in-Picture window opens and remains above PowerPoint, video, browser tabs, and other applications.
-3. Resize the subtitle window, place it along the bottom of the projector display, and leave it there.
+1. Download and run `IBG-Subtitle-Overlay.exe` from the [latest release](https://github.com/RktRobinhood/IBG-Assembly-Translator/releases/latest).
+2. Open the [live site](https://rktrobinhood.github.io/IBG-Assembly-Translator/) in a current desktop version of Chrome or Edge. The red overlay warning disappears when the companion connects.
+3. Drag and resize the native subtitle window along the bottom of the projector display.
 4. Before the event, select **Prepare local translation** once and wait for the model to report ready. The model is cached by the browser.
 5. Select **Start listening** and allow microphone access.
 6. Run PowerPoint normally. Keep the operator console open in the background.
 
-The main console retains the bilingual transcript throughout the assembly. The subtitle window has a solid, high-contrast surface, so it remains readable regardless of the slide behind it. It deliberately does not capture or duplicate the presentation.
+The main console retains the bilingual transcript throughout the assembly. The native subtitle window is borderless, always on top, and has a high-contrast surface, so it remains readable regardless of the slide behind it. It deliberately does not capture or duplicate the presentation. Browser Picture-in-Picture remains available as a fallback where supported.
 
 ## Browser and service requirements
 
-- Desktop Chrome 116+ or a current Chromium-based Edge release is required for Document Picture-in-Picture.
+- Windows 10/11 is required for the native overlay companion. Browser Picture-in-Picture is only a fallback.
 - The page must be served over HTTPS (GitHub Pages provides this).
 - Speech recognition requires internet access.
 - Prepared translation runs locally in the browser using a cached English/Danish model. The first model download is approximately 100 MB per direction and requires internet access.
@@ -30,6 +30,7 @@ The main console retains the bilingual transcript throughout the assembly. The s
 - Downloadable plain-text assembly transcript
 - Adjustable subtitle size and optional original-language line
 - Session state survives an accidental page refresh
+- Native Rust overlay connected over localhost; no caption data is sent to the companion over the network
 
 ## Run and test locally
 
@@ -43,3 +44,9 @@ Add `?demo=1` to the URL to inspect the complete operator layout without microph
 ## GitHub Pages
 
 The project uses only static HTML, CSS, and JavaScript. All asset paths are repository-relative and covered by static hosting tests. Pushes to `main` update the existing branch-based Pages deployment.
+
+## Build the Windows overlay
+
+```powershell
+cargo build --manifest-path native-overlay/Cargo.toml --release
+```

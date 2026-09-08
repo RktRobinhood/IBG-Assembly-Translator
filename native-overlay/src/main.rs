@@ -6,8 +6,12 @@ use std::{
     net::TcpListener,
     sync::mpsc::{self, Receiver, Sender},
     thread,
+    time::{Duration, Instant},
 };
-use tungstenite::accept;
+use tungstenite::{
+    accept_hdr,
+    handshake::server::{ErrorResponse, Request, Response},
+};
 
 const ADDRESS: &str = "127.0.0.1:17863";
 
@@ -24,10 +28,17 @@ enum OverlayCommand {
     Status {
         live: bool,
     },
+    Ping,
+}
+
+enum OverlayEvent {
+    Command(OverlayCommand),
+    Connected,
+    Disconnected,
 }
 
 struct SubtitleOverlay {
-    receiver: Receiver<OverlayCommand>,
+    receiver: Receiver<OverlayEvent>,
     source: String,
     target: String,
     direction: String,
@@ -35,10 +46,11 @@ struct SubtitleOverlay {
     show_source: bool,
     live: bool,
     connected: bool,
+    last_seen: Option<Instant>,
 }
 
 impl SubtitleOverlay {
-    fn new(receiver: Receiver<OverlayCommand>) -> Self {
+    fn new(receiver: Receiver<OverlayEvent>) -> Self {
         Self {
             receiver,
             source: "Waiting for speech…".into(),
@@ -48,28 +60,47 @@ impl SubtitleOverlay {
             show_source: true,
             live: false,
             connected: false,
+            last_seen: None,
         }
     }
 
     fn receive_updates(&mut self) {
-        while let Ok(command) = self.receiver.try_recv() {
-            self.connected = true;
-            match command {
-                OverlayCommand::Caption {
-                    source,
-                    target,
-                    direction,
-                    font_size,
-                    show_source,
-                } => {
-                    self.source = source;
-                    self.target = target;
-                    self.direction = direction;
-                    self.font_size = font_size.clamp(28.0, 78.0);
-                    self.show_source = show_source;
+        while let Ok(event) = self.receiver.try_recv() {
+            match event {
+                OverlayEvent::Connected => {
+                    self.connected = true;
+                    self.last_seen = Some(Instant::now());
                 }
-                OverlayCommand::Status { live } => self.live = live,
+                OverlayEvent::Disconnected => {
+                    self.connected = false;
+                    self.live = false;
+                }
+                OverlayEvent::Command(command) => match command {
+                    OverlayCommand::Caption {
+                        source,
+                        target,
+                        direction,
+                        font_size,
+                        show_source,
+                    } => {
+                        self.source = source;
+                        self.target = target;
+                        self.direction = direction;
+                        self.font_size = font_size.clamp(28.0, 78.0);
+                        self.show_source = show_source;
+                    }
+                    OverlayCommand::Status { live } => self.live = live,
+                    OverlayCommand::Ping => {}
+                },
             }
+            self.last_seen = Some(Instant::now());
+        }
+        if self
+            .last_seen
+            .is_some_and(|seen| seen.elapsed() > Duration::from_secs(4))
+        {
+            self.connected = false;
+            self.live = false;
         }
     }
 }
@@ -155,7 +186,20 @@ impl eframe::App for SubtitleOverlay {
     }
 }
 
-fn websocket_server(sender: Sender<OverlayCommand>) {
+fn origin_allowed(request: &Request) -> bool {
+    let Some(origin) = request
+        .headers()
+        .get("origin")
+        .and_then(|value| value.to_str().ok())
+    else {
+        return false;
+    };
+    origin == "https://rktrobinhood.github.io"
+        || origin.starts_with("http://127.0.0.1:")
+        || origin.starts_with("http://localhost:")
+}
+
+fn websocket_server(sender: Sender<OverlayEvent>) {
     let listener = match TcpListener::bind(ADDRESS) {
         Ok(listener) => listener,
         Err(error) => {
@@ -166,19 +210,32 @@ fn websocket_server(sender: Sender<OverlayCommand>) {
     for stream in listener.incoming().flatten() {
         let sender = sender.clone();
         thread::spawn(move || {
-            let Ok(mut socket) = accept(stream) else {
+            let Ok(mut socket) = accept_hdr(
+                stream,
+                |request: &Request, response: Response| -> Result<Response, ErrorResponse> {
+                    if origin_allowed(request) {
+                        Ok(response)
+                    } else {
+                        Err(ErrorResponse::new(Some("Origin not allowed".into())))
+                    }
+                },
+            ) else {
                 return;
             };
+            if sender.send(OverlayEvent::Connected).is_err() {
+                return;
+            }
             while let Ok(message) = socket.read() {
                 let Ok(text) = message.to_text() else {
                     continue;
                 };
                 if let Ok(command) = serde_json::from_str::<OverlayCommand>(text) {
-                    if sender.send(command).is_err() {
+                    if sender.send(OverlayEvent::Command(command)).is_err() {
                         break;
                     }
                 }
             }
+            let _ = sender.send(OverlayEvent::Disconnected);
         });
     }
 }

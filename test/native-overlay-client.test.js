@@ -26,4 +26,5 @@ test('native overlay receives the latest caption as soon as it connects', () => 
 
   assert.deepEqual(states, [true]);
   assert.deepEqual(JSON.parse(socket.sent[0]), { type: 'caption', source: 'Hello', target: 'Hej' });
+  client.close();
 });

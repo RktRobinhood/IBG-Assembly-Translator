@@ -1,14 +1,19 @@
 import { pipeline } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1';
+import { LatestWorkQueue } from './latest-work-queue.js';
 
 const MODELS = {
   'en|da': 'Xenova/opus-mt-en-da',
   'da|en': 'Xenova/opus-mt-da-en'
 };
 let translator = null;
-let work = Promise.resolve();
+const translations = new LatestWorkQueue({
+  run: handleMessage,
+  onSuperseded: (data) => self.postMessage({ id: data.id, type: 'error', message: 'Superseded by newer live speech' })
+});
 
 self.addEventListener('message', ({ data }) => {
-  work = work.then(() => handleMessage(data));
+  if (data.type === 'translate') translations.enqueue(data);
+  else void handleMessage(data);
 });
 
 async function handleMessage(data) {
